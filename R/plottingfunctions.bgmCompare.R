@@ -1,17 +1,7 @@
 #' @export
 
 plot_structure_probabilities.bgmCompare <- function(output, as_BF = FALSE, ...) {
-  if(packageVersion("bgms") < "0.1.4"){
-    stop("Your version of the package bgms is not supported anymore. Please update.")
-  }
-  
   fit_args <- bgms::extract_arguments(output)
-  
-  if (packageVersion("bgms") < "0.1.6.0" ) {
-    if(!(fit_args$save)){
-      stop("Please run your bgmCompare function with save = T.")
-    }
-  }
   
   res <- bgm_extract.package_bgms_compare(fit = output, save = TRUE,
                                           type = NULL, not_cont = NULL, data = NULL,
@@ -82,17 +72,7 @@ plot_structure_probabilities.bgmCompare <- function(output, as_BF = FALSE, ...) 
 
 plot_complexity_probabilities.bgmCompare <- function(output, ...) {
   
-  if(packageVersion("bgms") < "0.1.4"){
-    stop("Your version of the package bgms is not supported anymore. Please update.")
-  }
-  
   fit_args <- bgms::extract_arguments(output)
-  
-  if (packageVersion("bgms") < "0.1.6.0") {
-    if(!(fit_args$save)){
-      stop("Please run your bgmCompare function with save = T.")
-    }
-  }
   
   res <- bgm_extract.package_bgms_compare(fit = output, save = TRUE,
                                           type = NULL, not_cont = NULL, data = NULL,
@@ -150,20 +130,10 @@ plot_complexity_probabilities.bgmCompare <- function(output, ...) {
 #' @export
 
 plot_edgeevidence.bgmCompare <- function(output, evidence_thresh = 10, split = FALSE, show = "all", ...) {
-  
-  if(packageVersion("bgms") < "0.1.4"){
-    stop("Your version of the package bgms is not supported anymore. Please update.")
-  }
-  
+
   warning("Note, the plot indicates the edge evidence for the pairwise difference between the groups.")
-  
+
   fit_args <- bgms::extract_arguments(output)
-  
-  if (packageVersion("bgms") < "0.1.6.0") {
-    if(!(fit_args$save)){
-      stop("Please run your bgmCompare function with save = T.")
-    }
-  }
   
     res <- bgm_extract.package_bgms_compare(fit = output, save = TRUE,
                                             type = NULL, not_cont = NULL, data = NULL,
@@ -305,19 +275,9 @@ plot_edgeevidence.bgmCompare <- function(output, evidence_thresh = 10, split = F
 
 plot_network.bgmCompare <- function(output, exc_prob = .5, evidence_thresh = 10, dashed = TRUE, ...) {
   
-  if(packageVersion("bgms") < "0.1.4"){
-    stop("Your version of the package bgms is not supported anymore. Please update.")
-  }
-  
   warning("Note, the plot indicates the strength of the pairwise difference in edge parameters between the groups.")
-  
+
   fit_args <- bgms::extract_arguments(output)
-  
-  if (packageVersion("bgms") < "0.1.6.0") {
-    if(!(fit_args$save)){
-      stop("Please run your bgmCompare function with save = T.")
-    }
-  }
   
 
     res <- bgm_extract.package_bgms_compare(fit = output, save = TRUE,
@@ -381,19 +341,11 @@ plot_network.bgmCompare <- function(output, exc_prob = .5, evidence_thresh = 10,
 
 plot_structure.bgmCompare <- function(output, ...) {
   
-  if(packageVersion("bgms") < "0.1.4"){
-    stop("Your version of the package bgms is not supported anymore. Please update.")
-  }
   
   warning("Note, the plot indicates the structure of the pairwise difference between the groups.")
   
   fit_args <- bgms::extract_arguments(output)
   
-  if (packageVersion("bgms") < "0.1.6.0") {
-    if(!(fit_args$save)){
-      stop("Please run your bgmCompare function with save = T.")
-    }
-  }
   
     res <- bgm_extract.package_bgms_compare(fit = output, save = TRUE,
                                             type = NULL, not_cont = NULL, data = NULL,
@@ -437,25 +389,13 @@ plot_structure.bgmCompare <- function(output, ...) {
 
 plot_parameterHDI.bgmCompare <- function(output, ...) {
   
-  if(packageVersion("bgms") < "0.1.4"){
-    stop("Your version of the package bgms is not supported anymore. Please update.")
-  }
   
   
-  if (packageVersion("bgms") > "0.1.4.2") {
-    warning("Note, the plot indicates the posterior highest density interval of the overall group edges.")
-  } else {
-    warning("Note, the plot indicates the posterior highest density interval for subgroup differences.")
-  }
+  warning("Note, the plot indicates the posterior highest density interval of the overall group edges.")
   
   
   fit_args <- bgms::extract_arguments(output)
   
-  if (packageVersion("bgms") < "0.1.6.0") {
-    if(!(fit_args$save)){
-      stop("Please run your bgmCompare function with save = T.")
-    }
-  }
   
 
     res <- bgm_extract.package_bgms_compare(fit = output, save = TRUE,

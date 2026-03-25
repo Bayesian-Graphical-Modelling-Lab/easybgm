@@ -106,7 +106,7 @@ summary.easybgm <- function(object, evidence_thresh = 10, BF_uncertainty = FALSE
 
     ## ---- 2i. Create results data frame ----
     ## ----  Create results data frame with convergence (newer bgms)----
-    if("package_bgms" %in% class(object) && packageVersion("bgms") > "0.1.4.2"){
+    if("package_bgms" %in% class(object)){
       # if users want the BF uncertainty estimates
       if(BF_uncertainty){
         results <-
@@ -312,10 +312,26 @@ print.easybgm <- function(x, ...){
         "\n EDGE SPECIFIC OVERVIEW",
         "\n")
     print(x$parameters, quote = FALSE, right = TRUE, row.names=F)
+    fit_obj <- x$fit_object
+    if("package_bgms" %in% class(x)){
+      scales <- character(0)
+      if(!is.null(fit_obj$partial_correlations))
+        scales <- c(scales, "partial correlations ($partial_correlations)")
+      if(!is.null(fit_obj$precision_matrix))
+        scales <- c(scales, "precision matrix ($precision_matrix)")
+      if(!is.null(fit_obj$log_odds))
+        scales <- c(scales, "log odds ($log_odds)")
+      if(length(scales) > 0){
+        cat("\n The 'Estimate' column reports partial association parameters.",
+            "\n The rescaled equivalents of these parameters are available in the fitted object:",
+            "\n ", paste(scales, collapse = ", "), "\n")
+      }
+    }
     cat("\n Bayes Factors larger than", x$evidence_thresh, "were considered sufficient evidence for the classification",
         "\n Bayes factors were obtained using Bayesian model-averaging.",
         "\n ")
-    if("package_bgms" %in% class(x) && packageVersion("bgms") > "0.1.4.2" && isTRUE(x$BF_uncertainty)){
+    # --- Note about available parameter scales (bgms only) ---
+    if("package_bgms" %in% class(x) && isTRUE(x$BF_uncertainty)){
       cat(
         "\n Convergence diagnostics: The 'Convergence Estimate' is the R-hat (Gelman-Rubin) statistic, which measures how well MCMC chains have",
         "\n converged to the same target distribution for the edge weights. Values greater than about 1.01-1.05 are considered concerning,",
@@ -327,7 +343,7 @@ print.easybgm <- function(x, ...){
         "\n is not available.",
         "\n ---")
     }
-    if("package_bgms" %in% class(x) && packageVersion("bgms") > "0.1.4.2" && !isTRUE(x$BF_uncertainty)){
+    if("package_bgms" %in% class(x) && !isTRUE(x$BF_uncertainty)){
       cat("\n Convergence indicates the R-hat (Gelman-Rubin) statistic measuring how well MCMC chains have converged to",
           "\n the same target distribution. Values greater than about 1.01-1.05 are considered concerning, indicating",
           "\n potential lack of convergence for the estimates of the pairwise interactions.",
@@ -361,5 +377,6 @@ print.easybgm <- function(x, ...){
         "\n Number of possible structures:", x$possible_struc,
         "\n Posterior probability of most likely structure:", x$max_structure_prob,
         "\n---")
+
   }
 }

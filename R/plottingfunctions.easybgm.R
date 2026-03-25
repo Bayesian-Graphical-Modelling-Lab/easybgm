@@ -402,11 +402,7 @@ plot_parameterHDI.easybgm <- function(output, ...) {
   }
   
   if(any(class(output) == "easybgm_compare")){
-    if (packageVersion("bgms") > "0.1.4.2") {
-      warning("Note, the plot indicates the posterior highest density interval of the overall group edges.")
-    } else {
-      warning("Note, the plot indicates the posterior highest density interval for subgroup differences.")
-    }
+    warning("Note, the plot indicates the posterior highest density interval of the overall group edges.")
   }
   
   def_args <- list(
@@ -534,9 +530,6 @@ plot_centrality.list <- function(output, group_names = NULL, ...){
   
   # Check for bgms package version 
   if(any(class(output[[1]]) == "bgms")) {
-    if(packageVersion("bgms") < "0.1.3"){
-      stop("Your version of the package bgms is not supported anymore. Please update.")
-    }
     
     res <- list()
     for(i in 1:length(output)) {
@@ -648,9 +641,6 @@ plot_prior_sensitivity.list <- function(output,
   
   # Check for bgms package version 
   if(any(class(output[[1]]) == "bgms")) {
-    if(packageVersion("bgms") < "0.1.3"){
-      stop("Your version of the package bgms is not supported anymore. Please update.")
-    }
     
     res <- list()
     for(i in 1:length(output)) {

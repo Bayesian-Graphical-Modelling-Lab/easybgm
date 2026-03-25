@@ -50,7 +50,7 @@ summary.easybgm_compare <- function(object, evidence_thresh = 10, ...) {
 
   ## ---- 2d. Create results data frame ----
   ## ----  Create results data frame with convergence (newer bgms)----
-  if("package_bgms_compare" %in% class(object)&& packageVersion("bgms") > "0.1.4.2" ){
+  if("package_bgms_compare" %in% class(object)){
     if(is.null(object$multi_group)){
       results <-
         data.frame(
@@ -215,7 +215,7 @@ print.easybgm_compare <- function(x, ...){
     cat("\n Bayes Factors larger than", x$evidence_thresh, "were considered sufficient evidence for the classification.",
         "\n Bayes factors were obtained using Bayesian model-averaging.",
         "\n ")
-    if("package_bgms_compare" %in% class(x) && packageVersion("bgms") > "0.1.4.2"){
+    if("package_bgms_compare" %in% class(x)){
       cat("\n Convergence indicates the R-hat (Gelman-Rubin) statistic measuring how well MCMC chains have converged to",
           "\n the same target distribution, and values greater than about 1.01-1.05 are considered concerning, ",
           "\n indicating potential lack of convergence. ",
