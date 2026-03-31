@@ -72,7 +72,6 @@ bgm_extract.package_bgms_compare <- function(fit, type, save, group_indicator,
   ## Two group estimation
   ######--------------------
   if(is.null(group_indicator)){
-    class(fit) <- c("bgmCompare")
 
     args <- extract_arguments(fit)
     args$save <- TRUE
@@ -126,7 +125,6 @@ bgm_extract.package_bgms_compare <- function(fit, type, save, group_indicator,
   ## Multi-group estimation
   ######--------------------
   if(!is.null(group_indicator)){
-    class(fit) <- c("bgmCompare")
 
     args <- extract_arguments(fit)
     args$save <- TRUE
