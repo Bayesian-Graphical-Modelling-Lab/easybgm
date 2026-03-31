@@ -13,7 +13,6 @@ easybgm(
   save = FALSE,
   centrality = FALSE,
   progress = TRUE,
-  posterior_method = "model-averaged",
   ...
 )
 }

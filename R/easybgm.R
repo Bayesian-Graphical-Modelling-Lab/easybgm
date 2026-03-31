@@ -309,7 +309,7 @@
 
 
 easybgm <- function(data, type, package = NULL, not_cont = NULL, iter = 1e3, save = FALSE,
-                    centrality = FALSE, progress = TRUE, posterior_method = "model-averaged",
+                    centrality = FALSE, progress = TRUE,
                     ...){
 
   # --- Handle vector type (per-variable specification) ---
@@ -422,8 +422,7 @@ easybgm <- function(data, type, package = NULL, not_cont = NULL, iter = 1e3, sav
   # Extract the results
   res <- bgm_extract(fit, type = type,
                      save = save, not_cont = not_cont,
-                     data = data, centrality = centrality,
-                     posterior_method = posterior_method,
+                     data = data, centrality = centrality, 
                      iter = iter,
                      ...)
 

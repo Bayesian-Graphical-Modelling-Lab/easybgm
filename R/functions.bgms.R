@@ -87,6 +87,9 @@ bgm_extract.package_bgms <- function(fit, type, save, iter,
     # Single global inclusion probability
     edge.prior <- args$inclusion_probability
     
+    # needed for prior sensitivity check plot
+    bgms_res$edge.prior <- edge.prior
+    
   } else if (args$edge_prior[1] == "Beta-Bernoulli") {
     
     # Single global Beta–Bernoulli inclusion probability
@@ -95,10 +98,13 @@ bgm_extract.package_bgms <- function(fit, type, save, iter,
     
     args$inclusion_probability <- edge.prior
     
+    # needed for prior sensitivity check plot
+    bgms_res$edge.prior <- edge.prior
+    
   } else if (args$edge_prior[1] == "Stochastic-Block") {
     
     # Cluster assignments: a length-p vector like c(1,1,1,2,2)
-    cl <-bgms_res$sbm$posterior_mean_allocations
+    cl <- bgms_res$sbm$posterior_mean_allocations
     p  <- length(cl)
     
     # --- WITHIN-cluster inclusion probability ---
@@ -129,6 +135,9 @@ bgm_extract.package_bgms <- function(fit, type, save, iter,
     edge.prior <- prior_mat[lower.tri(prior_mat)]
     
     args$inclusion_probability <- edge.prior
+    
+    # needed for prior sensitivity check plot
+    bgms_res$edge.prior <- edge.prior
     
   } else if(args$edge_prior[1] == "None"){
     # Does nothing but we just need to include it to avoid it running into the following else statement
@@ -230,8 +239,8 @@ bgm_extract.package_bgms <- function(fit, type, save, iter,
       bgms_res$graph_weights <- table_structures[, 2]
       bgms_res$sample_graph <- as.character(table_structures[, 1])
       # finalize output
-      colnames(bgms_res$inc_probs) <- colnames(bgms_res$parameters)
-      colnames(bgms_res$inc_BF) <- colnames(bgms_res$parameters)
+      rownames(bgms_res$inc_probs) <- colnames(bgms_res$inc_probs) <- colnames(bgms_res$parameters)
+      rownames(bgms_res$inc_BF) <- colnames(bgms_res$inc_BF) <- colnames(bgms_res$parameters)
     }
   }
   # --- Optionally compute centrality ---
