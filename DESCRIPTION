@@ -29,7 +29,7 @@ Depends:
 Imports: 
     BDgraph,
     BGGM,
-    bgms (>= 0.1.6.4),
+    bgms (>= 0.2.0.0),
     dplyr,
     ggplot2,
     HDInterval,
