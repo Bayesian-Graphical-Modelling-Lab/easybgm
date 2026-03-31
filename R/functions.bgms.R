@@ -58,14 +58,12 @@ bgm_extract.package_bgms <- function(fit, type, save, iter,
   if (!inherits(fit, "bgms")) {
     varnames <- fit$var_names
     fit <- fit$packagefit
-    class(fit) <- "bgms"
   } else {
     args_tmp <- extract_arguments(fit)
     varnames <- args_tmp$data_columnnames
     if (is.null(varnames)) {
       varnames <- paste0("V", 1:args_tmp$num_variables)
     }
-    class(fit) <- "bgms"
   }
   
   # --- Extract model arguments and edge priors ---
