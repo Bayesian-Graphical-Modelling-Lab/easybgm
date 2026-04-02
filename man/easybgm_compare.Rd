@@ -30,21 +30,30 @@ matrix containing responses from all groups combined. Requires the
 group. This format supports two or more groups and is only available with
 the \code{bgms} package.}
 
-\item{type}{Specifies the data type. Currently supported types for group
-comparison:
+\item{type}{Specifies the data type. Can be used in two ways:
+
+\strong{1. A single string} (applies the same type to all variables):
 \itemize{
 \item \code{"ordinal"}: For ordinal (Likert-type) data. Default package:
 bgms.
 \item \code{"binary"}: For binary (0/1) data. Always uses bgms.
 \item \code{"blume-capel"}: For Blume-Capel ordinal data. Requires
-\code{baseline_category}. Always uses bgms.
+\code{baseline_category}. Default package: bgms.
 \item \code{"continuous"}: Only supported with
 \code{package = "BGGM"} (must be set explicitly). Not yet supported via
-bgms.
+bgms for group comparison.
 \item \code{"mixed"}: Only supported with
 \code{package = "BGGM"} (must be set explicitly). Requires
 \code{not_cont}. Not yet supported via bgms for group comparison.
-}}
+}
+
+\strong{2. A character vector of length p} (per-variable specification,
+bgms only): Each element specifies the type of the corresponding column.
+Valid values are \code{"ordinal"}, \code{"blume-capel"}, and
+\code{"binary"} (treated as \code{"ordinal"} internally).
+\code{"continuous"} is \strong{not} supported for group comparison via bgms.
+
+For example: \code{type = c("ordinal", "ordinal", "blume-capel")}.}
 
 \item{package}{The R-package used for fitting the comparison model. Optional;
 if not specified, \code{bgms} is used as the default for ordinal, binary,

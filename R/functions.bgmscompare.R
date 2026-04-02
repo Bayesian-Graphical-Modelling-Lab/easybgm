@@ -5,10 +5,17 @@
 bgm_fit.package_bgms_compare <- function(fit, type, data, group_indicator, iter, save,
                                          not_cont, progress, ...){
 
-  if(type == "binary") {
-    type <- "ordinal"
+  # Map binary to ordinal (vector-safe)
+  type[type == "binary"] <- "ordinal"
+
+  # Determine model label for display
+  if(length(type) > 1) {
+    model_label <- if(length(unique(type)) == 1) unique(type) else "mixed"
+  } else {
+    model_label <- type
   }
-  if(!is.data.frame(data)){
+
+  if(is.list(data) && !is.data.frame(data)){
     group_indicator <- NULL
   }
 
@@ -20,7 +27,7 @@ bgm_fit.package_bgms_compare <- function(fit, type, data, group_indicator, iter,
                          ...))
     )
 
-    fit$model <- type
+    fit$model <- model_label
     fit$packagefit <- bgms_fit
     if(is.null(colnames(data[[1]]))){
       fit$var_names <- paste0("V", 1:ncol(data[[1]]))
@@ -36,7 +43,7 @@ bgm_fit.package_bgms_compare <- function(fit, type, data, group_indicator, iter,
                          ...))
     )
 
-    fit$model <- type
+    fit$model <- model_label
     fit$packagefit <- bgms_fit
     if(is.null(colnames(data))){
       fit$var_names <- paste0("V", 1:ncol(data))
@@ -186,7 +193,11 @@ bgm_extract.package_bgms_compare <- function(fit, type, save, group_indicator,
   colnames(bgms_res$inc_probs) <- colnames(bgms_res$parameters)
   colnames(bgms_res$inc_BF) <- colnames(bgms_res$parameters)
 
-  bgms_res$model <- type
+  bgms_res$model <- if(length(type) > 1) {
+    if(length(unique(type)) == 1) unique(type) else "mixed"
+  } else {
+    type
+  }
   bgms_res$fit_arguments <- args
   bgms_res$edge.prior <- edge.prior # otherwise it stores a whole matrix
 

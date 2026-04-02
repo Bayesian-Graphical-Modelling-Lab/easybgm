@@ -18,21 +18,30 @@
 #'   group. This format supports two or more groups and is only available with
 #'   the \code{bgms} package.
 #'
-#' @param type Specifies the data type. Currently supported types for group
-#'   comparison:
+#' @param type Specifies the data type. Can be used in two ways:
+#'
+#'   \strong{1. A single string} (applies the same type to all variables):
 #'   \itemize{
 #'     \item \code{"ordinal"}: For ordinal (Likert-type) data. Default package:
 #'       bgms.
 #'     \item \code{"binary"}: For binary (0/1) data. Always uses bgms.
 #'     \item \code{"blume-capel"}: For Blume-Capel ordinal data. Requires
-#'       \code{baseline_category}. Always uses bgms.
+#'       \code{baseline_category}. Default package: bgms.
 #'     \item \code{"continuous"}: Only supported with
 #'       \code{package = "BGGM"} (must be set explicitly). Not yet supported via
-#'       bgms.
+#'       bgms for group comparison.
 #'     \item \code{"mixed"}: Only supported with
 #'       \code{package = "BGGM"} (must be set explicitly). Requires
 #'       \code{not_cont}. Not yet supported via bgms for group comparison.
 #'   }
+#'
+#'   \strong{2. A character vector of length p} (per-variable specification,
+#'   bgms only): Each element specifies the type of the corresponding column.
+#'   Valid values are \code{"ordinal"}, \code{"blume-capel"}, and
+#'   \code{"binary"} (treated as \code{"ordinal"} internally).
+#'   \code{"continuous"} is \strong{not} supported for group comparison via bgms.
+#'
+#'   For example: \code{type = c("ordinal", "ordinal", "blume-capel")}.
 #'
 #' @param package The R-package used for fitting the comparison model. Optional;
 #'   if not specified, \code{bgms} is used as the default for ordinal, binary,
@@ -194,12 +203,38 @@ easybgm_compare <- function(data,
     stop("Your data can't be read. There are two options of providing your data: 1) Provide two datasets in a list containing only the two datasets, or for ordinal data with the bgms pacakge > 0.1.6. 2) provide the data as a matrix or data.frame together with specifying the 'group_indicator' argument, which then also allows for multi-group comparison.",
          call. = FALSE)
   }
-  if(type %in% c("continuous", "mixed") && (is.null(package) || package == "bgms")){
+
+  # --- Handle vector type (per-variable specification) ---
+  is_vector_type <- length(type) > 1
+
+  if(is_vector_type) {
+    valid_types <- c("ordinal", "blume-capel", "binary")
+    invalid <- type[!type %in% valid_types]
+    if(length(invalid) > 0) {
+      warning("The following variable type(s) are not recognized for group comparison: ",
+              paste0("'", unique(invalid), "'", collapse = ", "), ". ",
+              "Valid types are: ", paste(valid_types, collapse = ", "), ". ",
+              "Note: 'continuous' is not supported for group comparison via bgms.",
+              call. = FALSE)
+      stop("Invalid variable types detected. See the warning message for more details.",
+           call. = FALSE)
+    }
+    ncols <- if(is.list(data) && !is.data.frame(data)) ncol(data[[1]]) else ncol(data)
+    if(length(type) != ncols) {
+      stop("When 'type' is a vector, its length (", length(type), ") must equal ",
+           "the number of columns in 'data' (", ncols, ").",
+           call. = FALSE)
+    }
+    type[type == "binary"] <- "ordinal"
+    package <- "package_bgms_compare"
+  }
+
+  if(!is_vector_type && length(type) == 1 && type %in% c("continuous", "mixed") && (is.null(package) || package == "bgms")){
     stop("Group comparison via bgms currently only supports ordinal and binary data types.
          For continuous or mixed data comparison, explicitly set package = 'BGGM'.",
          call. = FALSE)
   }
-  if(type == "mixed" & is.null(not_cont)){
+  if(!is_vector_type && length(type) == 1 && type == "mixed" && is.null(not_cont)){
     stop("Please provide a binary vector of length p specifying the not continuous variables
          (1 = not continuous, 0 = continuous).",
          call. = FALSE)
@@ -210,32 +245,21 @@ easybgm_compare <- function(data,
   has_reference <- "reference_category" %in% names(dots)
   has_baseline  <- "baseline_category" %in% names(dots)
 
-  # Example: If type == "blume-capel", then at least one must be present
-  if (type == "blume-capel" && !(has_reference || has_baseline)) {
-    stop("For the Blume-Capel model, a reference category needs to be specified. 
-         If type is 'blume-capel' it specifies the reference category in the Blume-Capel model.
-         Should be an integer within the range of integer scores observed for the
-         'blume-capel' variable. Can be a single number specifying the reference
-         category for all Blume-Capel variables at once, or a vector of length
-         p where the i-th element contains the reference category for
-         variable i if it is Blume-Capel, and bgm ignores its elements for
-         other variable types. The value of the reference category is also recoded
-         when bgm recodes the corresponding observations. Only required if there is at
-         least one variable of type ``blume-capel''.
-         For bgms version smaller than 0.1.6, use the reference_category argument. 
-         For all package versions including and older than 0.1.6., the baseline_category argument.",
+  if (any(type == "blume-capel") && !(has_reference || has_baseline)) {
+    stop("For the Blume-Capel model, a reference category needs to be specified.
+         Use the baseline_category argument to specify the reference category.",
          call. = FALSE)
   }
-  
+
   # Set default values for fitting if package is unspecified
   if(is.null(package)){
-    if(type == "ordinal") package <- "package_bgms_compare"
-    if(type == "binary") package <- "package_bgms_compare"
-    if(type == "blume-capel") package <- "package_bgms_compare"
+    if(length(type) == 1 && type == "ordinal") package <- "package_bgms_compare"
+    if(length(type) == 1 && type == "binary") package <- "package_bgms_compare"
+    if(length(type) == 1 && type == "blume-capel") package <- "package_bgms_compare"
   } else {
     if(package == "BGGM") package <- "package_bggm_compare"
     if(package == "bgms") package <- "package_bgms_compare"
-    if(type == "binary") package <- "package_bgms_compare"
+    if(any(type == "binary")) package <- "package_bgms_compare"
   }
 
   # change default number of iterations for BGGM fits

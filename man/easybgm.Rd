@@ -107,6 +107,11 @@ computation time. Automatically sets \code{save = TRUE}.}
 \item{progress}{Logical. Should a progress bar be shown
 (default = \code{TRUE})?}
 
+\item{...}{Additional arguments passed to the fitting functions of the
+underlying packages (e.g., prior specifications). See the
+\strong{Prior specification} section in Details for available options per
+package.}
+
 \item{posterior_method}{Determines how the posterior samples of the edge
 weight parameters are obtained for models fit with \code{BDgraph}. Can be
 either \code{"MAP"} (maximum-a-posteriori) or \code{"model-averaged"}
@@ -114,11 +119,6 @@ either \code{"MAP"} (maximum-a-posteriori) or \code{"model-averaged"}
 for the most likely structure. If \code{"model-averaged"}, samples are
 obtained for all plausible structures weighted by their posterior
 probability.}
-
-\item{...}{Additional arguments passed to the fitting functions of the
-underlying packages (e.g., prior specifications). See the
-\strong{Prior specification} section in Details for available options per
-package.}
 }
 \value{
 An object of class \code{easybgm} containing the following elements:
