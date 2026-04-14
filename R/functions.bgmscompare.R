@@ -102,14 +102,14 @@ bgm_extract.package_bgms_compare <- function(fit, type, save, group_indicator,
     bgms_res <- list()
 
     p <- args$num_variables
-    # TODO: replace with extractor when bgms adds one for difference means
-    pars <- fit$posterior_summary_pairwise_differences$mean
+    pars <- summary(fit)$pairwise_diff$mean
     bgms_res$parameters <- vector2matrix(pars, p = p)
     colnames(bgms_res$parameters) <- varnames
     bgms_res$structure <- matrix(1, ncol = ncol(bgms_res$parameters),
                                  nrow = nrow(bgms_res$parameters))
-    indicators <- extract_indicators(fit)
-    bgms_res$inc_probs <- vector2matrix(colMeans(indicators[, grep("\\(pairwise\\)", colnames(indicators))]), p = p)
+    inc_prob_mat <- extract_posterior_inclusion_probabilities(fit)
+    diag(inc_prob_mat) <- 0
+    bgms_res$inc_probs <- inc_prob_mat
     bgms_res$inc_BF <- (bgms_res$inc_probs/(1-bgms_res$inc_probs))/(edge.prior /(1 - edge.prior))
     bgms_res$structure <- 1*(bgms_res$inc_probs > 0.5)
 
@@ -156,8 +156,7 @@ bgm_extract.package_bgms_compare <- function(fit, type, save, group_indicator,
 
     p <- args$num_variables
     # Compute average group difference
-    # TODO: replace with extractor when bgms adds one for difference summary
-    diffs <- fit$posterior_summary_pairwise_differences
+    diffs <- summary(fit)$pairwise_diff
     edge_labels <- sub(" .*", "", diffs$parameter)
     edges <- unique(edge_labels)
     average_difference <- numeric(length(edges))
@@ -172,8 +171,9 @@ bgm_extract.package_bgms_compare <- function(fit, type, save, group_indicator,
     bgms_res$overall_estimate <- vector2matrix(extract_group_params(fit)$pairwise_effects_groups[, 1], p = p)
     bgms_res$structure <- matrix(1, ncol = ncol(bgms_res$parameters),
                                  nrow = nrow(bgms_res$parameters))
-    indicators <- extract_indicators(fit)
-    bgms_res$inc_probs <- vector2matrix(colMeans(indicators[, grep("\\(pairwise\\)", colnames(indicators))]), p = p)
+    inc_prob_mat <- extract_posterior_inclusion_probabilities(fit)
+    diag(inc_prob_mat) <- 0
+    bgms_res$inc_probs <- inc_prob_mat
     bgms_res$inc_BF <- (bgms_res$inc_probs/(1-bgms_res$inc_probs))/(edge.prior /(1 - edge.prior))
     bgms_res$structure <- 1*(bgms_res$inc_probs > 0.5)
 
