@@ -48,8 +48,8 @@
 #'   Supported options:
 #'   \itemize{
 #'     \item \code{"bgms"} (Default): Supports the following data types: continuous,
-#'       ordinal, binary, and blume-capel or a combination of the three. 
-#'       Requires bgms >= 0.1.6.4.
+#'       ordinal, binary, and blume-capel or a combination of the three.
+#'       Requires bgms >= 0.2.0.0.
 #'     \item \code{"BDgraph"}: Supports continuous (fits a GGM), mixed (fits a
 #'       GCGM). For continuous data, missing values are not
 #'       allowed; use \code{na.omit()} on the data first. Binary data is always
@@ -222,25 +222,55 @@
 #' \code{...} to the fitting function of the chosen package. We give an
 #' overview of the available prior arguments per package below.
 #'
-#' \emph{bgms}:
+#' \emph{bgms} (>= 0.2.0.0): the preferred interface uses prior-constructor
+#' objects from the \code{bgms} package. Pass them through \code{...}:
 #' \itemize{
-#'   \item \code{pairwise_scale}: Scale of the Cauchy prior on the pairwise
-#'     interaction parameters. Default is 2.5.
-#'   \item \code{edge_prior}: Prior on the graph structure: \code{"Bernoulli"}
-#'     (default), \code{"Beta-Bernoulli"}, or \code{"Stochastic-Block"}.
+#'   \item \code{interaction_prior}: A parameter prior on pairwise interactions.
+#'     Use \code{\link[bgms]{cauchy_prior}(scale)} (default
+#'     \code{cauchy_prior(scale = 1)}), \code{\link[bgms]{normal_prior}(scale)},
+#'     or \code{\link[bgms]{beta_prime_prior}(alpha, beta)}.
+#'   \item \code{threshold_prior}: A parameter prior on threshold (main effect)
+#'     parameters. Use \code{\link[bgms]{beta_prime_prior}(alpha, beta)}
+#'     (default \code{beta_prime_prior(0.5, 0.5)}),
+#'     \code{\link[bgms]{cauchy_prior}(scale)}, or
+#'     \code{\link[bgms]{normal_prior}(scale)}.
+#'   \item \code{means_prior}: A prior on the means of continuous variables in
+#'     mixed MRF models. Default \code{normal_prior(scale = 1)}.
+#'   \item \code{precision_scale_prior}: A prior on the diagonal entries of the
+#'     precision matrix (GGM and mixed MRF). Use
+#'     \code{\link[bgms]{gamma_prior}(shape, rate)} (default) or
+#'     \code{\link[bgms]{exponential_prior}(rate)}.
+#'   \item \code{edge_prior}: An indicator prior on edge inclusion. Use
+#'     \code{\link[bgms]{bernoulli_prior}(inclusion_probability)} (default
+#'     \code{bernoulli_prior(0.5)}; \code{inclusion_probability} can also be a
+#'     symmetric \eqn{p \times p} matrix of edge-specific probabilities),
+#'     \code{\link[bgms]{beta_bernoulli_prior}(alpha, beta)}, or
+#'     \code{\link[bgms]{sbm_prior}(alpha, beta, alpha_between, beta_between, dirichlet_alpha, lambda)}
+#'     for the Stochastic Block Model prior.
+#' }
+#'
+#' For backwards compatibility, the legacy flat arguments below are still
+#' accepted via \code{...} and are translated internally to the corresponding
+#' prior-constructor objects (no deprecation warnings are raised):
+#' \itemize{
+#'   \item \code{pairwise_scale}: Scale of the Cauchy prior on pairwise
+#'     interactions. Default is 1 (changed from 2.5 in bgms 0.2.0.0 due to a
+#'     reparameterization to the association scale).
+#'   \item \code{edge_prior}: A character string \code{"Bernoulli"} (default),
+#'     \code{"Beta-Bernoulli"}, or \code{"Stochastic-Block"}.
 #'   \item \code{inclusion_probability}: Prior edge inclusion probability for
-#'     the \code{"Bernoulli"} prior. Default is 0.5. This can also 
-#'     be a symmetric pxp matrix of edge-specific inclusion probabilities.
-#'   \item \code{beta_bernoulli_alpha} and \code{beta_bernoulli_beta}: (Within) Shape
-#'     parameters of the \code{"Beta-Bernoulli"} or \code{"Stochastic-Block"}
-#'     priors. Both default to 1.
+#'     the Bernoulli prior. Default 0.5.
+#'   \item \code{beta_bernoulli_alpha} and \code{beta_bernoulli_beta}: (Within)
+#'     shape parameters of the Beta-Bernoulli or Stochastic-Block priors.
+#'     Both default to 1.
 #'   \item \code{beta_bernoulli_alpha_between} and
 #'     \code{beta_bernoulli_beta_between}: Shape parameters of the
-#'     \code{"Stochastic-Block"} prior for between-block edges.
-#'   \item \code{dirichlet_alpha}: Shape of the Dirichlet prior on node-to-block
-#'     allocations for the \code{"Stochastic-Block"} prior.
-#'   \item \code{threshold_alpha} and \code{threshold_beta}: Parameters of the
-#'     beta-prime prior on threshold parameters. Both default to 1.
+#'     Stochastic-Block prior for between-block edges.
+#'   \item \code{dirichlet_alpha}, \code{lambda}: Hyperparameters of the
+#'     Stochastic-Block prior.
+#'   \item \code{threshold_alpha}, \code{threshold_beta} (or
+#'     \code{main_alpha}, \code{main_beta}): Beta-prime parameters of the
+#'     threshold prior. Both default to 0.5.
 #' }
 #'
 #' \emph{BDgraph}:

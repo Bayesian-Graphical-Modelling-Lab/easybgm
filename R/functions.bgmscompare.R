@@ -19,12 +19,13 @@ bgm_fit.package_bgms_compare <- function(fit, type, data, group_indicator, iter,
     group_indicator <- NULL
   }
 
+  bgmcompare_args <- translate_bgmcompare_prior_args(list(...))
   if(is.null(group_indicator)){
     bgms_fit <- do.call(
       bgmCompare, c(list(x = data[[1]], y = data[[2]], iter = iter,
                          variable_type = type,
-                         display_progress = progress,
-                         ...))
+                         display_progress = progress),
+                    bgmcompare_args)
     )
 
     fit$model <- model_label
@@ -39,8 +40,8 @@ bgm_fit.package_bgms_compare <- function(fit, type, data, group_indicator, iter,
       bgmCompare, c(list(x = data, group_indicator = group_indicator,
                          iter = iter,
                          variable_type = type,
-                         display_progress = progress,
-                         ...))
+                         display_progress = progress),
+                    bgmcompare_args)
     )
 
     fit$model <- model_label
@@ -92,8 +93,8 @@ bgm_extract.package_bgms_compare <- function(fit, type, save, group_indicator,
         args$inclusion_probability_difference <- edge.prior
       }
     } else { # if BB or SBM
-      edge.prior <- args$beta_bernoulli_alpha /
-        (args$beta_bernoulli_alpha + args$beta_bernoulli_beta)
+      edge.prior <- args$difference_selection_alpha /
+        (args$difference_selection_alpha + args$difference_selection_beta)
 
       # otherwise it saves the wrong values (could be done more elegantly)
       args$inclusion_probability_difference <- edge.prior

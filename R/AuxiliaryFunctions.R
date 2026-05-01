@@ -179,6 +179,129 @@ dots_check <- function(...){
   }
 }
 
+# 10. Translate legacy flat prior args into bgms (>= 0.2.0.0) prior objects.
+# Why: bgms now expects prior-class objects (cauchy_prior(), beta_prime_prior(),
+# bernoulli_prior(), etc.). Passing the old flat args still works but triggers
+# lifecycle::deprecate_warn() on every call. Folding them here keeps the
+# easybgm user-facing API unchanged while suppressing those warnings.
+translate_bgm_prior_args <- function(dots) {
+  out <- dots
+
+  # interaction_prior: from pairwise_scale (legacy default 1)
+  if(!"interaction_prior" %in% names(out) && "pairwise_scale" %in% names(out)) {
+    out$interaction_prior <- bgms::cauchy_prior(scale = out$pairwise_scale)
+  }
+  out$pairwise_scale <- NULL
+
+  # threshold_prior: from main_alpha / main_beta (or legacy threshold_alpha / threshold_beta)
+  has_main <- any(c("main_alpha", "main_beta",
+                    "threshold_alpha", "threshold_beta") %in% names(out))
+  if(!"threshold_prior" %in% names(out) && has_main) {
+    a <- out$main_alpha %||% out$threshold_alpha %||% 0.5
+    b <- out$main_beta  %||% out$threshold_beta  %||% 0.5
+    out$threshold_prior <- bgms::beta_prime_prior(alpha = a, beta = b)
+  }
+  out$main_alpha <- out$main_beta <- NULL
+  out$threshold_alpha <- out$threshold_beta <- NULL
+
+  # edge_prior: from character string + flat hyperparameters
+  if("edge_prior" %in% names(out) && is.character(out$edge_prior)) {
+    ep_str <- out$edge_prior
+    ip <- out$inclusion_probability %||% 0.5
+    bba <- out$beta_bernoulli_alpha %||% 1
+    bbb <- out$beta_bernoulli_beta %||% 1
+    bbab <- out$beta_bernoulli_alpha_between %||% 1
+    bbbb <- out$beta_bernoulli_beta_between %||% 1
+    da  <- out$dirichlet_alpha %||% 1
+    lam <- out$lambda %||% 1
+
+    out$edge_prior <- switch(ep_str,
+      "Bernoulli"        = bgms::bernoulli_prior(inclusion_probability = ip),
+      "Beta-Bernoulli"   = bgms::beta_bernoulli_prior(alpha = bba, beta = bbb),
+      "Stochastic-Block" = bgms::sbm_prior(alpha = bba, beta = bbb,
+                                           alpha_between = bbab, beta_between = bbbb,
+                                           dirichlet_alpha = da, lambda = lam),
+      stop("Unknown edge_prior '", ep_str, "'.")
+    )
+  } else if(!"edge_prior" %in% names(out) &&
+            any(c("inclusion_probability", "beta_bernoulli_alpha",
+                  "beta_bernoulli_beta") %in% names(out))) {
+    # User supplied flat hyperparameters without naming the family: assume Bernoulli
+    # if inclusion_probability is given, else Beta-Bernoulli.
+    if("inclusion_probability" %in% names(out)) {
+      out$edge_prior <- bgms::bernoulli_prior(
+        inclusion_probability = out$inclusion_probability
+      )
+    } else {
+      out$edge_prior <- bgms::beta_bernoulli_prior(
+        alpha = out$beta_bernoulli_alpha %||% 1,
+        beta  = out$beta_bernoulli_beta  %||% 1
+      )
+    }
+  }
+  out$inclusion_probability <- NULL
+  out$beta_bernoulli_alpha <- out$beta_bernoulli_beta <- NULL
+  out$beta_bernoulli_alpha_between <- out$beta_bernoulli_beta_between <- NULL
+  out$dirichlet_alpha <- out$lambda <- NULL
+
+  out
+}
+
+# Same for bgmCompare: difference_prior is the indicator prior on group differences.
+translate_bgmcompare_prior_args <- function(dots) {
+  out <- dots
+
+  # interaction_prior (baseline) and threshold_prior: same translation as bgm()
+  if(!"interaction_prior" %in% names(out) && "pairwise_scale" %in% names(out)) {
+    out$interaction_prior <- bgms::cauchy_prior(scale = out$pairwise_scale)
+  }
+  out$pairwise_scale <- NULL
+
+  has_main <- any(c("main_alpha", "main_beta",
+                    "threshold_alpha", "threshold_beta") %in% names(out))
+  if(!"threshold_prior" %in% names(out) && has_main) {
+    a <- out$main_alpha %||% out$threshold_alpha %||% 0.5
+    b <- out$main_beta  %||% out$threshold_beta  %||% 0.5
+    out$threshold_prior <- bgms::beta_prime_prior(alpha = a, beta = b)
+  }
+  out$main_alpha <- out$main_beta <- NULL
+  out$threshold_alpha <- out$threshold_beta <- NULL
+
+  # difference_prior: from a character string + flat hyperparameters
+  if("difference_prior" %in% names(out) && is.character(out$difference_prior)) {
+    dp_str <- out$difference_prior
+    dprob <- out$difference_probability %||% 0.5
+    bba <- out$beta_bernoulli_alpha %||% 1
+    bbb <- out$beta_bernoulli_beta %||% 1
+
+    out$difference_prior <- switch(dp_str,
+      "Bernoulli"      = bgms::bernoulli_prior(inclusion_probability = dprob),
+      "Beta-Bernoulli" = bgms::beta_bernoulli_prior(alpha = bba, beta = bbb),
+      stop("Unknown difference_prior '", dp_str, "'.")
+    )
+  } else if(!"difference_prior" %in% names(out) &&
+            any(c("difference_probability", "beta_bernoulli_alpha",
+                  "beta_bernoulli_beta") %in% names(out))) {
+    if("difference_probability" %in% names(out)) {
+      out$difference_prior <- bgms::bernoulli_prior(
+        inclusion_probability = out$difference_probability
+      )
+    } else {
+      out$difference_prior <- bgms::beta_bernoulli_prior(
+        alpha = out$beta_bernoulli_alpha %||% 1,
+        beta  = out$beta_bernoulli_beta  %||% 1
+      )
+    }
+  }
+  out$difference_probability <- NULL
+  out$beta_bernoulli_alpha <- out$beta_bernoulli_beta <- NULL
+
+  out
+}
+
+# Null-coalescing helper used by the translators above.
+`%||%` <- function(a, b) if(is.null(a)) b else a
+
 
 # Given alpha and beta parameters computes the (log)probability of the beta Bernoulli distribution
 # for the bgms package returns probability for a specific complexity

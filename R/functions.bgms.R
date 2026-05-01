@@ -23,11 +23,12 @@ bgm_fit.package_bgms <- function(fit, type, data, iter, save,
     variable_type <- type
   }
 
+  bgm_args <- translate_bgm_prior_args(list(...))
   bgms_fit <- do.call(
     bgm, c(list(x = data, iter = iter,
                 variable_type = variable_type,
-                display_progress = progress,
-                ...))
+                display_progress = progress),
+           bgm_args)
   )
 
   fit$model <- original_type

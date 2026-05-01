@@ -166,9 +166,43 @@ groups. Only available with \code{bgms}.
 
 \strong{Prior specification}
 
-Users may wish to adjust priors via the \code{...} argument. Consult the
-documentation of \code{\link[bgms]{bgm}} and \code{\link[BGGM]{explore}} for
-specific prior options.
+Users may wish to adjust priors via the \code{...} argument. We summarize
+the bgms options here and refer to \code{\link[bgms]{bgmCompare}} and
+\code{\link[BGGM]{explore}} for full details.
+
+\emph{bgms} (>= 0.2.0.0): the preferred interface uses prior-constructor
+objects:
+\itemize{
+\item \code{interaction_prior}: Prior on the baseline pairwise
+interactions. Use \code{\link[bgms]{cauchy_prior}(scale)} (default
+\code{cauchy_prior(scale = 1)}), \code{\link[bgms]{normal_prior}(scale)},
+or \code{\link[bgms]{beta_prime_prior}(alpha, beta)}.
+\item \code{threshold_prior}: Prior on threshold parameters. Default
+\code{beta_prime_prior(0.5, 0.5)}.
+\item \code{difference_prior}: Indicator prior on group differences.
+Use \code{\link[bgms]{bernoulli_prior}(inclusion_probability)} (default
+\code{bernoulli_prior(0.5)}) or
+\code{\link[bgms]{beta_bernoulli_prior}(alpha, beta)}.
+\item \code{difference_scale}: Scale of the prior on the magnitude of
+pairwise differences. Default 1.
+\item \code{difference_selection}: Logical, whether to perform Bayesian
+selection on group differences. Default \code{TRUE}.
+}
+
+For backwards compatibility, the legacy flat arguments below are still
+accepted via \code{...} and are translated internally:
+\itemize{
+\item \code{pairwise_scale}: Scale of the Cauchy interaction prior.
+\item \code{difference_prior}: Character string \code{"Bernoulli"}
+(default) or \code{"Beta-Bernoulli"}.
+\item \code{difference_probability}: Prior probability of a difference for
+the Bernoulli prior. Default 0.5.
+\item \code{beta_bernoulli_alpha}, \code{beta_bernoulli_beta}: Shape
+parameters of the Beta-Bernoulli difference prior. Both default to 1.
+\item \code{threshold_alpha}, \code{threshold_beta} (or
+\code{main_alpha}, \code{main_beta}): Beta-prime parameters of the
+threshold prior. Both default to 0.5.
+}
 
 We always encourage researchers to conduct prior sensitivity checks.
 }
