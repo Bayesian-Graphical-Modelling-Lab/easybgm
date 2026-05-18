@@ -10,21 +10,18 @@
 #'
 #' @param type Specifies the type of data. There are two ways to use this argument:
 #'
-#'   \strong{1. A single string} (applies the same type to all variables):
+#'   \strong{1. A single string}:
 #'   \itemize{
 #'     \item \code{"continuous"}: For continuous (Gaussian) data. Estimates a
 #'       Gaussian Graphical Model (GGM).
 #'     \item \code{"ordinal"}: For ordinal (Likert-type) data. Estimates an
 #'       Ordinal Markov Random Field (OMRF).
-#'     \item \code{"binary"}: For binary (0/1) data. Estimates an OMRF internally
-#'     (which reduces to the Ising model when all variables are binary). 
+#'     \item \code{"binary"}: For binary (0/1) data. Estimates an Ising model. 
 #'     \item \code{"blume-capel"}: For Blume-Capel ordinal data. Requires a
 #'       reference category via the \code{baseline_category} argument.
-#'       
 #'    \item \code{"mixed"}: For data with both continuous and discrete
 #'       variables. Requires the \code{not_cont} argument to indicate which
-#'       variables are not continuous (see below). Internally, this constructs a
-#'       per-variable type vector. This value should only be specified when
+#'       variables are not continuous (see below). This value should only be specified when
 #'       fitting a mixed model using \code{package = "BDgraph"} or \code{package = "BGGM"}.
 #'       See below on how to specify mixed models using bgms.
 #'   }
@@ -32,16 +29,13 @@
 #'   \strong{2. A character vector of length p} (per-variable specification,
 #'   bgms only): Each element specifies the type of the corresponding column in
 #'   \code{data}. Valid values are \code{"ordinal"}, \code{"continuous"},
-#'   \code{"blume-capel"}, and \code{"binary"} (treated as \code{"ordinal"}
-#'   internally). This provides full control over mixed-type data without needing
-#'   the \code{not_cont} argument.
+#'   \code{"blume-capel"}, and \code{"binary"}.
 #'
 #'   For example: \code{type = c("ordinal", "ordinal", "continuous")} specifies
 #'   that the first two columns are ordinal and the third is continuous.
 #'
 #'   \emph{Note:} Per-variable type vectors are only supported with the
-#'   \code{bgms} package. Mixed models with other packages can be fit using 
-#'   \code{type = "mixed"} and the \code{not_cont} argument (see above).
+#'   \code{bgms} package.
 #'
 #' @param package The R-package used for fitting the network model. Optional;
 #'   if not specified, \code{bgms} is used as the default for all data types.
@@ -49,27 +43,11 @@
 #'   \itemize{
 #'     \item \code{"bgms"} (Default): Supports the following data types: continuous,
 #'       ordinal, binary, and blume-capel or a combination of the three.
-#'       Requires bgms >= 0.2.0.0.
 #'     \item \code{"BDgraph"}: Supports continuous (fits a GGM), mixed (fits a
 #'       GCGM). For continuous data, missing values are not
-#'       allowed; use \code{na.omit()} on the data first. Binary data is always
-#'       routed to bgms regardless of the package argument.
-#'     \item \code{"BGGM"}: Supports continuous and mixed data. Binary data is
-#'       always routed to bgms regardless of the package argument.
+#'       allowed; use \code{na.omit()} on the data first. 
+#'     \item \code{"BGGM"}: Supports continuous and mixed data.
 #'   }
-#'
-#' @param not_cont A binary vector of length p, required when
-#'   \code{type = "mixed"} and a single string is used. Each element indicates
-#'   whether the corresponding variable is not continuous
-#'   (\code{1} = not continuous/ordinal, \code{0} = continuous). This is used to
-#'   construct a per-variable type vector internally. Only neccesary when 
-#'   using \code{package = "BDgraph"} or \code{package = "BGGM"}. 
-#'   
-#'   For example, for 5 variables where the first two are ordinal and the rest
-#'   continuous: \code{not_cont = c(1, 1, 0, 0, 0)}.
-#'
-#'   \emph{Note:} This argument is not needed when using a per-variable type
-#'   vector for the \code{type} argument when \code{package = "bgms"} (default).
 #'
 #' @param iter Number of iterations for the sampler. The default depends on the
 #'   package:
@@ -94,19 +72,23 @@
 #'
 #' @param progress Logical. Should a progress bar be shown
 #'   (default = \code{TRUE})?
-#'
-#' @param posterior_method Determines how the posterior samples of the edge
-#'   weight parameters are obtained for models fit with \code{BDgraph}. Can be
-#'   either \code{"MAP"} (maximum-a-posteriori) or \code{"model-averaged"}
-#'   (default). If \code{"MAP"}, samples are obtained for the edge weights only
-#'   for the most likely structure. If \code{"model-averaged"}, samples are
-#'   obtained for all plausible structures weighted by their posterior
-#'   probability.
+#'   
+#' @param not_cont A binary vector of length p, required when
+#'   \code{type = "mixed"} and a single string is used. Each element indicates
+#'   whether the corresponding variable is not continuous
+#'   (\code{1} = not continuous/ordinal, \code{0} = continuous). This is used to
+#'   construct a per-variable type vector internally. Only neccesary when 
+#'   using \code{package = "BDgraph"} or \code{package = "BGGM"}. 
+#'   
+#' @param baseline_category Integer or vector, required if at least one variable 
+#'   is of type \code{"blume-capel"}. Baseline category used in
+#'   Blume--Capel variables. Can be a single integer (applied to all) or a
+#'   vector of length \code{p}. 
 #'
 #' @param ... Additional arguments passed to the fitting functions of the
 #'   underlying packages (e.g., prior specifications). See the
-#'   \strong{Prior specification} section in Details for available options per
-#'   package.
+#'   \strong{Prior specification} section in Details for available prior options per
+#'   package and the package help files for all other potential arguments.
 #'
 #' @return An object of class \code{easybgm} containing the following elements:
 #'
@@ -254,8 +236,7 @@
 #' prior-constructor objects (no deprecation warnings are raised):
 #' \itemize{
 #'   \item \code{pairwise_scale}: Scale of the Cauchy prior on pairwise
-#'     interactions. Default is 1 (changed from 2.5 in bgms 0.2.0.0 due to a
-#'     reparameterization to the association scale).
+#'     interactions. Default is 1.
 #'   \item \code{edge_prior}: A character string \code{"Bernoulli"} (default),
 #'     \code{"Beta-Bernoulli"}, or \code{"Stochastic-Block"}.
 #'   \item \code{inclusion_probability}: Prior edge inclusion probability for
@@ -304,7 +285,7 @@
 #' library(easybgm)
 #' library(bgms)
 #'
-#' data <- na.omit(Wenchuan)
+#' data <- na.omit(Wenchuan)[1:100, 1:5]
 #'
 #' # --- Continuous data (default: bgms) ---
 #' fit <- easybgm(data, type = "continuous",
@@ -338,15 +319,17 @@
 
 
 
-easybgm <- function(data, type, package = NULL, not_cont = NULL, iter = 1e3, save = FALSE,
-                    centrality = FALSE, progress = TRUE,
+easybgm <- function(data, type, package = NULL, 
+                    save = FALSE, centrality = FALSE,
+                    iter = 1e3, progress = TRUE, 
+                    baseline_category = NULL, not_cont = NULL,
                     ...){
-
+  
   # --- Handle vector type (per-variable specification) ---
   # When type is a vector of length > 1 (e.g., c("ordinal", "ordinal", "continuous")),
   # it specifies the variable type for each column. This is only supported with bgms.
   is_vector_type <- length(type) > 1
-
+  
   if(is_vector_type) {
     valid_types <- c("ordinal", "continuous", "blume-capel", "binary")
     invalid <- type[!type %in% valid_types]
@@ -364,25 +347,22 @@ easybgm <- function(data, type, package = NULL, not_cont = NULL, iter = 1e3, sav
            "the number of columns in 'data' (", ncol(data), ").",
            call. = FALSE)
     }
-    if(!is.null(package) && package != "bgms") {
-      stop("A per-variable 'type' vector is only supported with package = 'bgms'.",
-           call. = FALSE)
-    }
     # Map "binary" to "ordinal" internally
     type[type == "binary"] <- "ordinal"
     package <- "package_bgms"
   }
-
+  
   if(!is_vector_type && length(type) == 1 && type == "mixed" && is.null(not_cont)){
     stop("Please provide a binary vector of length p specifying the not continuous variables
          (1 = not continuous, 0 = continuous).",
          call. = FALSE)
   }
-
+  
   dots <- list(...)
+  # reference_category still needs to be checked for backwards compatability
   has_reference <- "reference_category" %in% names(dots)
-  has_baseline  <- "baseline_category" %in% names(dots)
-
+  has_baseline  <- !is.null(baseline_category)
+  
   # If type contains "blume-capel", a reference category must be present
   if (any(type == "blume-capel") && !(has_reference || has_baseline)) {
     stop("For the Blume-Capel model, a reference category needs to be specified.
@@ -390,38 +370,33 @@ easybgm <- function(data, type, package = NULL, not_cont = NULL, iter = 1e3, sav
          Should be an integer within the range of integer scores observed for the
          'blume-capel' variable. Can be a single number specifying the reference
          category for all Blume-Capel variables at once, or a vector of length
-         p where the i-th element contains the reference category for
-         variable i if it is Blume-Capel, and bgm ignores its elements for
-         other variable types. The value of the reference category is also recoded
-         when bgm recodes the corresponding observations. Only required if there is at
-         least one variable of type ``blume-capel''.
+         p. bgm ignores its elements for other variable types. 
          For bgms version smaller than 0.1.6, use the reference_category argument.
          For all package versions including and older than 0.1.6., the baseline_category argument.",
          call. = FALSE)
   }
-
-
+  
+  
   # Set default values for fitting if package is unspecified
-  if(is.null(package)){
-    if(length(type) == 1 && type == "continuous") package <- "package_bgms"
-    if(length(type) == 1 && type == "mixed") package <- "package_bgms"
-    if(length(type) == 1 && type == "ordinal") package <- "package_bgms"
-    if(length(type) == 1 && type == "binary") package <- "package_bgms"
-    if(length(type) == 1 && type == "blume-capel") package <- "package_bgms"
-  } else if(!is_vector_type) {
+  if(type == "blume-capel"){
+    package <- "package_bgms"
+  } else if(is_vector_type){
+    package <- "package_bgms"
+  } else if(is.null(package)){
+    package <- "package_bgms"
+  } else {
     if(package == "BDgraph") package <- "package_bdgraph"
     if(package == "BGGM") package <- "package_bggm"
     if(package == "bgms") package <- "package_bgms"
-    if(type == "binary") package <- "package_bgms"
   }
-
+  
   # change the default number of iterations depending on the underlying package
   if(iter == 1e3 && package == "package_bdgraph"){
     iter <- 1e4
   } else if (iter == 1e3 && package == "package_bggm"){
     iter <- 1e4
   }
-
+  
   if(length(type) == 1 && type == "continuous" && package == "package_bdgraph" && any(is.na(data))){
     stop("The data contains missing values which cannot be handled as continuous data by BDgraph (GGM). ",
          "Please either:\n",
@@ -429,33 +404,34 @@ easybgm <- function(data, type, package = NULL, not_cont = NULL, iter = 1e3, sav
          "  2) Set type = 'mixed' to estimate a GCGM, which can handle missing data.",
          call. = FALSE)
   }
-
-
-
+  
+  
+  
   fit <- list()
   class(fit) <- c(package, "easybgm")
   
   if(!save && centrality){
     save <- TRUE
   }
-
+  
   # Fit the model
   tryCatch(
     {fit <- bgm_fit(fit, data = data, type = type, not_cont = not_cont, iter = iter,
-                    save = save, centrality = centrality, progress = progress, ...)
+                    save = save, centrality = centrality, progress = progress, 
+                    baseline_category = baseline_category, ...)
     },
     error = function(e){
       # If an error occurs, stop running the code
       stop(paste("Error meassage: ", e$message, "Please consult the original message for more information.") )
     })
-
+  
   # Extract the results
   res <- bgm_extract(fit, type = type,
                      save = save, not_cont = not_cont,
                      data = data, centrality = centrality, 
                      iter = iter,
                      ...)
-
+  
   # Output results
   class(res) <- c(package, "easybgm")
   return(res)

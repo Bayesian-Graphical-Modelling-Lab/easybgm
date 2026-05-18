@@ -19,7 +19,7 @@ easybgm_compare(
 \arguments{
 \item{data}{The data can be provided in two formats:
 
-\strong{1. A list of two dataframes} (two-group comparison): Each element
+\strong{1. A list of two dataframes} (two-group comparison): Each list element
 is an n x p matrix or dataframe for one group. The variables (columns) must
 be the same across both dataframes. This format is supported by both
 \code{bgms} and \code{BGGM}.
@@ -32,40 +32,28 @@ the \code{bgms} package.}
 
 \item{type}{Specifies the data type. Can be used in two ways:
 
-\strong{1. A single string} (applies the same type to all variables):
+\strong{1. A single string}:
 \itemize{
+\item \code{"continuous"}: For continuous data. Default package: BGGM.
 \item \code{"ordinal"}: For ordinal (Likert-type) data. Default package:
 bgms.
-\item \code{"binary"}: For binary (0/1) data. Always uses bgms.
+\item \code{"binary"}: For binary (0/1) data. Default package: bgms.
 \item \code{"blume-capel"}: For Blume-Capel ordinal data. Requires
 \code{baseline_category}. Default package: bgms.
-\item \code{"continuous"}: Only supported with
-\code{package = "BGGM"} (must be set explicitly). Not yet supported via
-bgms for group comparison.
-\item \code{"mixed"}: Only supported with
-\code{package = "BGGM"} (must be set explicitly). Requires
-\code{not_cont}. Not yet supported via bgms for group comparison.
+\item \code{"mixed"}: For mixed data, requires \code{not_cont}. Default
+package: BGGM.
 }
 
 \strong{2. A character vector of length p} (per-variable specification,
 bgms only): Each element specifies the type of the corresponding column.
 Valid values are \code{"ordinal"}, \code{"blume-capel"}, and
-\code{"binary"} (treated as \code{"ordinal"} internally).
-\code{"continuous"} is \strong{not} supported for group comparison via bgms.
+\code{"binary"}.
 
 For example: \code{type = c("ordinal", "ordinal", "blume-capel")}.}
 
-\item{package}{The R-package used for fitting the comparison model. Optional;
-if not specified, \code{bgms} is used as the default for ordinal, binary,
-and blume-capel data. Supported options:
-\itemize{
-\item \code{"bgms"} (Default): Supports ordinal, binary, and blume-capel
-data. Supports both two-group (list input) and multi-group (single
-dataframe + \code{group_indicator}) comparisons.
-\item \code{"BGGM"}: Supports continuous and mixed data. Only supports
-two-group comparison (list input). Binary data is always routed to
-bgms regardless.
-}}
+\item{package}{The R-package used for fitting the comparison model.
+If not specified, \code{bgms} is used as the default for ordinal, binary,
+and blume-capel data and \code{BGGM} as default for continous and mixed data.}
 
 \item{not_cont}{A binary vector of length p, required when
 \code{type = "mixed"}. Each element indicates whether the corresponding
@@ -78,12 +66,7 @@ single matrix/dataframe (multi-group comparison). Supports two or more
 groups (e.g., \code{rep(c(1, 2, 3), each = 50)} for three groups of 50
 observations each). Only available with the \code{bgms} package.}
 
-\item{iter}{Number of iterations for the sampler. The default depends on the
-package:
-\itemize{
-\item \code{bgms}: 1e4 (10,000 iterations)
-\item \code{BGGM}: 1e4 (10,000 iterations)
-}
+\item{iter}{Number of iterations for the sampler. The default is 1e4.
 The recommended number of iterations depends on the data and model
 complexity. Check convergence diagnostics in the output.}
 
@@ -144,15 +127,11 @@ differences in conditional (in)dependence relations across groups.
 \tabular{lcc}{
 \strong{Data type}  \tab \strong{bgms} \tab \strong{BGGM} \cr
 ordinal              \tab Yes (default)  \tab No            \cr
-binary               \tab Yes (always)   \tab No            \cr
+binary               \tab Yes (always)   \tab Yes            \cr
 blume-capel          \tab Yes (default)  \tab No            \cr
-continuous            \tab No             \tab Yes (explicit)\cr
-mixed                 \tab No             \tab Yes (explicit)\cr
+continuous            \tab No             \tab Yes (default) \cr
+mixed                 \tab No             \tab Yes (default) \cr
 }
-
-For continuous or mixed data comparison, you must explicitly set
-\code{package = "BGGM"}. If no package is specified for these types, the
-function will return an informative error.
 
 \strong{Two-group vs. multi-group comparison}
 

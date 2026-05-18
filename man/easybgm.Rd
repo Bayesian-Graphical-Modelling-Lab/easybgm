@@ -8,11 +8,12 @@ easybgm(
   data,
   type,
   package = NULL,
-  not_cont = NULL,
-  iter = 1000,
   save = FALSE,
   centrality = FALSE,
+  iter = 1000,
   progress = TRUE,
+  baseline_category = NULL,
+  not_cont = NULL,
   ...
 )
 }
@@ -22,21 +23,18 @@ independent observations on p variables.}
 
 \item{type}{Specifies the type of data. There are two ways to use this argument:
 
-\strong{1. A single string} (applies the same type to all variables):
+\strong{1. A single string}:
 \itemize{
 \item \code{"continuous"}: For continuous (Gaussian) data. Estimates a
 Gaussian Graphical Model (GGM).
 \item \code{"ordinal"}: For ordinal (Likert-type) data. Estimates an
 Ordinal Markov Random Field (OMRF).
-\item \code{"binary"}: For binary (0/1) data. Estimates an OMRF internally
-(which reduces to the Ising model when all variables are binary).
+\item \code{"binary"}: For binary (0/1) data. Estimates an Ising model.
 \item \code{"blume-capel"}: For Blume-Capel ordinal data. Requires a
 reference category via the \code{baseline_category} argument.
-
 \item \code{"mixed"}: For data with both continuous and discrete
 variables. Requires the \code{not_cont} argument to indicate which
-variables are not continuous (see below). Internally, this constructs a
-per-variable type vector. This value should only be specified when
+variables are not continuous (see below). This value should only be specified when
 fitting a mixed model using \code{package = "BDgraph"} or \code{package = "BGGM"}.
 See below on how to specify mixed models using bgms.
 }
@@ -44,16 +42,13 @@ See below on how to specify mixed models using bgms.
 \strong{2. A character vector of length p} (per-variable specification,
 bgms only): Each element specifies the type of the corresponding column in
 \code{data}. Valid values are \code{"ordinal"}, \code{"continuous"},
-\code{"blume-capel"}, and \code{"binary"} (treated as \code{"ordinal"}
-internally). This provides full control over mixed-type data without needing
-the \code{not_cont} argument.
+\code{"blume-capel"}, and \code{"binary"}.
 
 For example: \code{type = c("ordinal", "ordinal", "continuous")} specifies
 that the first two columns are ordinal and the third is continuous.
 
 \emph{Note:} Per-variable type vectors are only supported with the
-\code{bgms} package. Mixed models with other packages can be fit using
-\code{type = "mixed"} and the \code{not_cont} argument (see above).}
+\code{bgms} package.}
 
 \item{package}{The R-package used for fitting the network model. Optional;
 if not specified, \code{bgms} is used as the default for all data types.
@@ -61,27 +56,21 @@ Supported options:
 \itemize{
 \item \code{"bgms"} (Default): Supports the following data types: continuous,
 ordinal, binary, and blume-capel or a combination of the three.
-Requires bgms >= 0.2.0.0.
 \item \code{"BDgraph"}: Supports continuous (fits a GGM), mixed (fits a
 GCGM). For continuous data, missing values are not
-allowed; use \code{na.omit()} on the data first. Binary data is always
-routed to bgms regardless of the package argument.
-\item \code{"BGGM"}: Supports continuous and mixed data. Binary data is
-always routed to bgms regardless of the package argument.
+allowed; use \code{na.omit()} on the data first.
+\item \code{"BGGM"}: Supports continuous and mixed data.
 }}
 
-\item{not_cont}{A binary vector of length p, required when
-\code{type = "mixed"} and a single string is used. Each element indicates
-whether the corresponding variable is not continuous
-(\code{1} = not continuous/ordinal, \code{0} = continuous). This is used to
-construct a per-variable type vector internally. Only neccesary when
-using \code{package = "BDgraph"} or \code{package = "BGGM"}.
+\item{save}{Logical. Should the posterior samples be obtained
+(default = \code{FALSE})? If \code{TRUE}, the output includes a
+\code{samples_posterior} matrix with the posterior samples for each edge
+weight parameter. Setting \code{centrality = TRUE} automatically sets
+\code{save = TRUE}.}
 
-For example, for 5 variables where the first two are ordinal and the rest
-continuous: \code{not_cont = c(1, 1, 0, 0, 0)}.
-
-\emph{Note:} This argument is not needed when using a per-variable type
-vector for the \code{type} argument when \code{package = "bgms"} (default).}
+\item{centrality}{Logical. Should the centrality measures be extracted
+(default = \code{FALSE})? Note that this will significantly increase
+computation time. Automatically sets \code{save = TRUE}.}
 
 \item{iter}{Number of iterations for the sampler. The default depends on the
 package:
@@ -94,31 +83,25 @@ The recommended number of iterations depends on the data, model complexity,
 and desired precision. Check the convergence diagnostics in the output to
 determine if more iterations are needed.}
 
-\item{save}{Logical. Should the posterior samples be obtained
-(default = \code{FALSE})? If \code{TRUE}, the output includes a
-\code{samples_posterior} matrix with the posterior samples for each edge
-weight parameter. Setting \code{centrality = TRUE} automatically sets
-\code{save = TRUE}.}
-
-\item{centrality}{Logical. Should the centrality measures be extracted
-(default = \code{FALSE})? Note that this will significantly increase
-computation time. Automatically sets \code{save = TRUE}.}
-
 \item{progress}{Logical. Should a progress bar be shown
 (default = \code{TRUE})?}
 
+\item{baseline_category}{Integer or vector, required if at least one variable
+is of type \code{"blume-capel"}. Baseline category used in
+Blume--Capel variables. Can be a single integer (applied to all) or a
+vector of length \code{p}.}
+
+\item{not_cont}{A binary vector of length p, required when
+\code{type = "mixed"} and a single string is used. Each element indicates
+whether the corresponding variable is not continuous
+(\code{1} = not continuous/ordinal, \code{0} = continuous). This is used to
+construct a per-variable type vector internally. Only neccesary when
+using \code{package = "BDgraph"} or \code{package = "BGGM"}.}
+
 \item{...}{Additional arguments passed to the fitting functions of the
 underlying packages (e.g., prior specifications). See the
-\strong{Prior specification} section in Details for available options per
-package.}
-
-\item{posterior_method}{Determines how the posterior samples of the edge
-weight parameters are obtained for models fit with \code{BDgraph}. Can be
-either \code{"MAP"} (maximum-a-posteriori) or \code{"model-averaged"}
-(default). If \code{"MAP"}, samples are obtained for the edge weights only
-for the most likely structure. If \code{"model-averaged"}, samples are
-obtained for all plausible structures weighted by their posterior
-probability.}
+\strong{Prior specification} section in Details for available prior options per
+package and the package help files for all other potential arguments.}
 }
 \value{
 An object of class \code{easybgm} containing the following elements:
@@ -270,8 +253,7 @@ accepted via \code{...} and are translated internally to the corresponding
 prior-constructor objects (no deprecation warnings are raised):
 \itemize{
 \item \code{pairwise_scale}: Scale of the Cauchy prior on pairwise
-interactions. Default is 1 (changed from 2.5 in bgms 0.2.0.0 due to a
-reparameterization to the association scale).
+interactions. Default is 1.
 \item \code{edge_prior}: A character string \code{"Bernoulli"} (default),
 \code{"Beta-Bernoulli"}, or \code{"Stochastic-Block"}.
 \item \code{inclusion_probability}: Prior edge inclusion probability for
@@ -313,7 +295,7 @@ We encourage researchers to conduct prior sensitivity checks.
 library(easybgm)
 library(bgms)
 
-data <- na.omit(Wenchuan)
+data <- na.omit(Wenchuan)[1:100, 1:5]
 
 # --- Continuous data (default: bgms) ---
 fit <- easybgm(data, type = "continuous",

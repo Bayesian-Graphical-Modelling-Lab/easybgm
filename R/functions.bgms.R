@@ -3,7 +3,9 @@
 # --------------------------------------------------------------------------------------------------
 #' @export
 bgm_fit.package_bgms <- function(fit, type, data, iter, save,
-                                 not_cont, centrality, progress, ...){
+                                 not_cont, centrality, progress, 
+                                 baseline_category, 
+                                 ...){
 
   # Store original easybgm type before mapping
   original_type <- type

@@ -7,7 +7,7 @@
 #'
 #' @param data The data can be provided in two formats:
 #'
-#'   \strong{1. A list of two dataframes} (two-group comparison): Each element
+#'   \strong{1. A list of two dataframes} (two-group comparison): Each list element
 #'   is an n x p matrix or dataframe for one group. The variables (columns) must
 #'   be the same across both dataframes. This format is supported by both
 #'   \code{bgms} and \code{BGGM}.
@@ -20,40 +20,28 @@
 #'
 #' @param type Specifies the data type. Can be used in two ways:
 #'
-#'   \strong{1. A single string} (applies the same type to all variables):
+#'   \strong{1. A single string}:
 #'   \itemize{
+#'     \item \code{"continuous"}: For continuous data. Default package: BGGM.
 #'     \item \code{"ordinal"}: For ordinal (Likert-type) data. Default package:
 #'       bgms.
-#'     \item \code{"binary"}: For binary (0/1) data. Always uses bgms.
+#'     \item \code{"binary"}: For binary (0/1) data. Default package: bgms.
 #'     \item \code{"blume-capel"}: For Blume-Capel ordinal data. Requires
 #'       \code{baseline_category}. Default package: bgms.
-#'     \item \code{"continuous"}: Only supported with
-#'       \code{package = "BGGM"} (must be set explicitly). Not yet supported via
-#'       bgms for group comparison.
-#'     \item \code{"mixed"}: Only supported with
-#'       \code{package = "BGGM"} (must be set explicitly). Requires
-#'       \code{not_cont}. Not yet supported via bgms for group comparison.
+#'     \item \code{"mixed"}: For mixed data, requires \code{not_cont}. Default 
+#'        package: BGGM.
 #'   }
 #'
 #'   \strong{2. A character vector of length p} (per-variable specification,
 #'   bgms only): Each element specifies the type of the corresponding column.
 #'   Valid values are \code{"ordinal"}, \code{"blume-capel"}, and
-#'   \code{"binary"} (treated as \code{"ordinal"} internally).
-#'   \code{"continuous"} is \strong{not} supported for group comparison via bgms.
+#'   \code{"binary"}.
 #'
 #'   For example: \code{type = c("ordinal", "ordinal", "blume-capel")}.
 #'
-#' @param package The R-package used for fitting the comparison model. Optional;
-#'   if not specified, \code{bgms} is used as the default for ordinal, binary,
-#'   and blume-capel data. Supported options:
-#'   \itemize{
-#'     \item \code{"bgms"} (Default): Supports ordinal, binary, and blume-capel
-#'       data. Supports both two-group (list input) and multi-group (single
-#'       dataframe + \code{group_indicator}) comparisons.
-#'     \item \code{"BGGM"}: Supports continuous and mixed data. Only supports
-#'       two-group comparison (list input). Binary data is always routed to
-#'       bgms regardless.
-#'   }
+#' @param package The R-package used for fitting the comparison model. 
+#'   If not specified, \code{bgms} is used as the default for ordinal, binary,
+#'   and blume-capel data and \code{BGGM} as default for continous and mixed data. 
 #'
 #' @param not_cont A binary vector of length p, required when
 #'   \code{type = "mixed"}. Each element indicates whether the corresponding
@@ -66,12 +54,7 @@
 #'   groups (e.g., \code{rep(c(1, 2, 3), each = 50)} for three groups of 50
 #'   observations each). Only available with the \code{bgms} package.
 #'
-#' @param iter Number of iterations for the sampler. The default depends on the
-#'   package:
-#'   \itemize{
-#'     \item \code{bgms}: 1e4 (10,000 iterations)
-#'     \item \code{BGGM}: 1e4 (10,000 iterations)
-#'   }
+#' @param iter Number of iterations for the sampler. The default is 1e4.
 #'   The recommended number of iterations depends on the data and model
 #'   complexity. Check convergence diagnostics in the output.
 #'
@@ -128,15 +111,12 @@
 #' \tabular{lcc}{
 #'   \strong{Data type}  \tab \strong{bgms} \tab \strong{BGGM} \cr
 #'   ordinal              \tab Yes (default)  \tab No            \cr
-#'   binary               \tab Yes (always)   \tab No            \cr
+#'   binary               \tab Yes (always)   \tab Yes            \cr
 #'   blume-capel          \tab Yes (default)  \tab No            \cr
-#'   continuous            \tab No             \tab Yes (explicit)\cr
-#'   mixed                 \tab No             \tab Yes (explicit)\cr
+#'   continuous            \tab No             \tab Yes (default) \cr
+#'   mixed                 \tab No             \tab Yes (default) \cr
 #' }
 #'
-#' For continuous or mixed data comparison, you must explicitly set
-#' \code{package = "BGGM"}. If no package is specified for these types, the
-#' function will return an informative error.
 #'
 #' \strong{Two-group vs. multi-group comparison}
 #'
@@ -237,10 +217,10 @@ easybgm_compare <- function(data,
     stop("Your data can't be read. There are two options of providing your data: 1) Provide two datasets in a list containing only the two datasets, or for ordinal data with the bgms pacakge > 0.1.6. 2) provide the data as a matrix or data.frame together with specifying the 'group_indicator' argument, which then also allows for multi-group comparison.",
          call. = FALSE)
   }
-
+  
   # --- Handle vector type (per-variable specification) ---
   is_vector_type <- length(type) > 1
-
+  
   if(is_vector_type) {
     valid_types <- c("ordinal", "blume-capel", "binary")
     invalid <- type[!type %in% valid_types]
@@ -262,47 +242,45 @@ easybgm_compare <- function(data,
     type[type == "binary"] <- "ordinal"
     package <- "package_bgms_compare"
   }
+  
 
-  if(!is_vector_type && length(type) == 1 && type %in% c("continuous", "mixed") && (is.null(package) || package == "bgms")){
-    stop("Group comparison via bgms currently only supports ordinal and binary data types.
-         For continuous or mixed data comparison, explicitly set package = 'BGGM'.",
-         call. = FALSE)
-  }
   if(!is_vector_type && length(type) == 1 && type == "mixed" && is.null(not_cont)){
     stop("Please provide a binary vector of length p specifying the not continuous variables
          (1 = not continuous, 0 = continuous).",
          call. = FALSE)
   }
-
-
+  
+  
   dots <- list(...)
   has_reference <- "reference_category" %in% names(dots)
   has_baseline  <- "baseline_category" %in% names(dots)
-
+  
   if (any(type == "blume-capel") && !(has_reference || has_baseline)) {
     stop("For the Blume-Capel model, a reference category needs to be specified.
          Use the baseline_category argument to specify the reference category.",
          call. = FALSE)
   }
-
+  
   # Set default values for fitting if package is unspecified
-  if(is.null(package)){
-    if(length(type) == 1 && type == "ordinal") package <- "package_bgms_compare"
-    if(length(type) == 1 && type == "binary") package <- "package_bgms_compare"
-    if(length(type) == 1 && type == "blume-capel") package <- "package_bgms_compare"
+  if(type %in% c("blume-capel", "ordinal")){
+    package <- "package_bgms_compare"
+  } else if(is_vector_type){
+    package <- "package_bgms_compare"
+  } else if(is.null(package)){
+    if(type == "ordinal") package <- "package_bgms_compare"
+    if(type == "binary") package <- "package_bgms_compare"
+    if(type == "blume-capel") package <- "package_bgms_compare"
+    if(type == "continuous") package <- "package_bggm_compare"
+    if(type == "mixed") package <- "package_bggm_compare"
   } else {
     if(package == "BGGM") package <- "package_bggm_compare"
     if(package == "bgms") package <- "package_bgms_compare"
-    if(any(type == "binary")) package <- "package_bgms_compare"
-  }
-
-  # change default number of iterations for BGGM fits
-  if (iter == 1e3 && package == "package_bgms_compare"){
-    iter <- 1e4
   }
   
-  if(is.data.frame(data) &&  package == "package_bggm_compare"){
-    stop("Your data can't be read. For continuous data fit with BGGM, you can only provide two datasets in a list.",
+  
+  if((is.data.frame(data) || is.matrix(data)) && package == "package_bggm_compare"){
+    stop("Your data can't be read. For continuous data fit with BGGM, 
+         you can only provide two datasets in a list.",
          call. = FALSE)
   }
   
