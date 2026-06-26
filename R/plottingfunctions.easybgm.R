@@ -136,7 +136,7 @@ plot_edgeevidence.easybgm <- function(output,
                                       evidence_thresh = NULL,
                                       evidence_thresh_strong = 10, 
                                       evidence_thresh_weak = 3, 
-                                      edge_legend = TRUE, 
+                                      edge_legend = FALSE, 
                                       split = FALSE, show = "all", 
                                       ...) {
   

@@ -40,9 +40,10 @@ See below on how to specify mixed models using bgms.
 }
 
 \strong{2. A character vector of length p} (per-variable specification,
-bgms only): Each element specifies the type of the corresponding column in
-\code{data}. Valid values are \code{"ordinal"}, \code{"continuous"},
-\code{"blume-capel"}, and \code{"binary"}.
+\code{bgms} only from package version 0.2.0.0): Each element specifies the
+type of the corresponding column in \code{data}. Valid values are
+\code{"ordinal"}, \code{"continuous"},\code{"blume-capel"},
+and \code{"binary"}.
 
 For example: \code{type = c("ordinal", "ordinal", "continuous")} specifies
 that the first two columns are ordinal and the third is continuous.
@@ -51,12 +52,16 @@ that the first two columns are ordinal and the third is continuous.
 \code{bgms} package.}
 
 \item{package}{The R-package used for fitting the network model. Optional;
-if not specified, \code{bgms} is used as the default for all data types.
+if not specified and \code{bgms} version < 0.2.0.0, \code{bgms} is used for
+the fit of binary, ordinal, and blume-capel data and \code{BGGM} for
+continuous and mixed data.
+if not specified and \code{bgms} version >= 0.2.0.0, \code{bgms} is used as
+the default for all data types.
 Supported options:
 \itemize{
-\item \code{"bgms"} (Default): Supports the following data types: continuous,
+\item \code{bgms} (Default): Supports the following data types: continuous,
 ordinal, binary, and blume-capel or a combination of the three.
-\item \code{"BDgraph"}: Supports continuous (fits a GGM), mixed (fits a
+\item \code{BDgraph}: Supports continuous (fits a GGM), mixed (fits a
 GCGM). For continuous data, missing values are not
 allowed; use \code{na.omit()} on the data first.
 \item \code{"BGGM"}: Supports continuous and mixed data.

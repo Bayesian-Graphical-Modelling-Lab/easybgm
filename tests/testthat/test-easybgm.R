@@ -14,6 +14,7 @@ test_that("easybgm returns expected structure across valid type–package combos
   p <- ncol(dat)
   itr <- 10
   
+  if(packageVersion("bgms") > "0.1.6.3"){
   # Test only core combinations
   combos <- list(
     ### BGGM
@@ -34,6 +35,24 @@ test_that("easybgm returns expected structure across valid type–package combos
     list(type = "mixed",      pkg = "bgms", sv = T, cnt = T),
     list(type = c("ordinal", "ordinal", "continuous", "continuous", "ordinal"), pkg = "bgms", sv = F, cnt = F)
   )
+  } else if(packageVersion("bgms") < "0.2.0.0"){
+    # Test only core combinations
+    combos <- list(
+      ### BGGM
+      list(type = "continuous", pkg = "BGGM", sv = F, cnt = F),
+      list(type = "continuous", pkg = "BGGM", sv = T, cnt = T),
+      list(type = "mixed", pkg = "BGGM", sv = T, cnt = T),
+      ### BDGRAPH
+      list(type = "mixed",      pkg = "BDgraph", sv = F, cnt = F),
+      list(type = "continuous",  pkg = "BDgraph", sv = F, cnt = F),
+      ### bgms
+      list(type = "binary",     pkg = "bgms", sv = F, cnt = F),
+      list(type = "binary",     pkg = "bgms", sv = T, cnt = T),
+      list(type = "binary",     pkg = "bgms", sv = F, cnt = T),
+      list(type = "blume-capel", pkg = "bgms", sv = T, cnt = T),
+      list(type = "binary", pkg = "bgms", sv = T, cnt = T, sbm = "Stochastic-Block")
+    )
+  }
   
   for (cmb in combos) {
     t <- cmb$type
@@ -205,32 +224,26 @@ test_that("plotting functions work across valid type–package combos", {
   }
 })
 
-
-##### NETWORK COMPARISON
-
-test_that("easybgm_compare errors for continuous/mixed without BGGM", {
-  data("Wenchuan", package = "bgms")
-  dat <- na.omit(Wenchuan)[1:20, 1:5]
-  group_dat <- list(dat[1:10, ], dat[11:20, ])
-
-  expect_error(
-    easybgm_compare(group_dat, type = "continuous"),
-    "only supports ordinal and binary"
-  )
-  expect_error(
-    easybgm_compare(group_dat, type = "mixed", not_cont = c(1, 1, 0, 0, 0)),
-    "only supports ordinal and binary"
-  )
-  expect_error(
-    easybgm_compare(group_dat, type = "continuous", package = "bgms"),
-    "only supports ordinal and binary"
-  )
-})
+# # TEst only possible to include post 0.2.0.0 version
+# test_that("easybgm defaults to bgms for all data types", {
+#   data("Wenchuan", package = "bgms")
+#   dat <- na.omit(Wenchuan)[1:20, 1:5]
+#   
+#   suppressWarnings({
+#     res <- easybgm(dat, type = "continuous", iter = 10, progress = FALSE)
+#   })
+#   expect_true("package_bgms" %in% class(res))
+#   
+#   suppressWarnings({
+#     res2 <- easybgm(dat, type = "ordinal", iter = 10, progress = FALSE)
+#   })
+#   expect_true("package_bgms" %in% class(res2))
+# })
 
 test_that("easybgm errors for BDgraph continuous with missing data", {
   data("Wenchuan", package = "bgms")
   dat_with_na <- Wenchuan[1:20, 1:5]  # Wenchuan has NAs
-
+  
   expect_error(
     easybgm(dat_with_na, type = "continuous", package = "BDgraph",
             iter = 10, progress = FALSE),
@@ -238,20 +251,19 @@ test_that("easybgm errors for BDgraph continuous with missing data", {
   )
 })
 
-test_that("easybgm defaults to bgms for all data types", {
+
+##### NETWORK COMPARISON
+
+test_that("easybgm_compare errors for continuous/mixed without BGGM", {
   data("Wenchuan", package = "bgms")
   dat <- na.omit(Wenchuan)[1:20, 1:5]
-
-  suppressWarnings({
-    res <- easybgm(dat, type = "continuous", iter = 10, progress = FALSE)
-  })
-  expect_true("package_bgms" %in% class(res))
-
-  suppressWarnings({
-    res2 <- easybgm(dat, type = "ordinal", iter = 10, progress = FALSE)
-  })
-  expect_true("package_bgms" %in% class(res2))
+  group_dat <- list(dat[1:10, ], dat[11:20, ])
+  expect_error(
+    easybgm_compare(group_dat, type = "continuous", package = "bgms"),
+    "not of type continuous"
+  )
 })
+
 
 test_that("easybgm_compare returns expected structure across valid type–package combos", {
   set.seed(123)

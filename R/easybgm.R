@@ -27,9 +27,11 @@
 #'   }
 #'
 #'   \strong{2. A character vector of length p} (per-variable specification,
-#'   bgms only): Each element specifies the type of the corresponding column in
-#'   \code{data}. Valid values are \code{"ordinal"}, \code{"continuous"},
-#'   \code{"blume-capel"}, and \code{"binary"}.
+#'   \code{bgms} only from package version 0.2.0.0): Each element specifies the 
+#'   type of the corresponding column in \code{data}. Valid values are 
+#'   \code{"ordinal"}, \code{"continuous"},\code{"blume-capel"}, 
+#'   and \code{"binary"}.
+#'   
 #'
 #'   For example: \code{type = c("ordinal", "ordinal", "continuous")} specifies
 #'   that the first two columns are ordinal and the third is continuous.
@@ -38,12 +40,16 @@
 #'   \code{bgms} package.
 #'
 #' @param package The R-package used for fitting the network model. Optional;
-#'   if not specified, \code{bgms} is used as the default for all data types.
+#'   if not specified and \code{bgms} version < 0.2.0.0, \code{bgms} is used for
+#'   the fit of binary, ordinal, and blume-capel data and \code{BGGM} for 
+#'   continuous and mixed data. 
+#'   if not specified and \code{bgms} version >= 0.2.0.0, \code{bgms} is used as 
+#'   the default for all data types.
 #'   Supported options:
 #'   \itemize{
-#'     \item \code{"bgms"} (Default): Supports the following data types: continuous,
+#'     \item \code{bgms} (Default): Supports the following data types: continuous,
 #'       ordinal, binary, and blume-capel or a combination of the three.
-#'     \item \code{"BDgraph"}: Supports continuous (fits a GGM), mixed (fits a
+#'     \item \code{BDgraph}: Supports continuous (fits a GGM), mixed (fits a
 #'       GCGM). For continuous data, missing values are not
 #'       allowed; use \code{na.omit()} on the data first. 
 #'     \item \code{"BGGM"}: Supports continuous and mixed data.
@@ -310,38 +316,49 @@ easybgm <- function(data, type, package = NULL,
                     baseline_category = NULL, not_cont = NULL,
                     ...){
   
-  # --- Handle vector type (per-variable specification) ---
-  # When type is a vector of length > 1 (e.g., c("ordinal", "ordinal", "continuous")),
-  # it specifies the variable type for each column. This is only supported with bgms.
-  is_vector_type <- length(type) > 1
-  
-  if(is_vector_type) {
-    valid_types <- c("ordinal", "continuous", "blume-capel", "binary")
-    invalid <- type[!type %in% valid_types]
-    if(length(invalid) > 0) {
-      warning("The following variable type(s) are not recognized: ",
-              paste0("'", unique(invalid), "'", collapse = ", "), ". ",
-              "Valid types are: ", paste(valid_types, collapse = ", "), ". ",
-              "Please check for typos.",
-              call. = FALSE)
-      stop("Invalid variable types detected. See the warning message for more details.",
-           call. = FALSE)
-    }
-    if(length(type) != ncol(data)) {
-      stop("When 'type' is a vector, its length (", length(type), ") must equal ",
-           "the number of columns in 'data' (", ncol(data), ").",
-           call. = FALSE)
-    }
-    # Map "binary" to "ordinal" internally
-    type[type == "binary"] <- "ordinal"
-    package <- "package_bgms"
-  }
-  
-  if(!is_vector_type && length(type) == 1 && type == "mixed" && is.null(not_cont)){
-    stop("Please provide a binary vector of length p specifying the not continuous variables
+  # Handle specification per variable type
+  if(packageVersion("bgms") > "0.1.6.3"){
+    # --- Handle vector type (per-variable specification) ---
+    # When type is a vector of length > 1 (e.g., c("ordinal", "ordinal", "continuous")),
+    # it specifies the variable type for each column. This is only supported with bgms.
+    is_vector_type <- length(type) > 1
+    
+    if(is_vector_type) {
+      valid_types <- c("ordinal", "continuous", "blume-capel", "binary")
+      invalid <- type[!type %in% valid_types]
+      if(length(invalid) > 0) {
+        warning("The following variable type(s) are not recognized: ",
+                paste0("'", unique(invalid), "'", collapse = ", "), ". ",
+                "Valid types are: ", paste(valid_types, collapse = ", "), ". ",
+                "Please check for typos.",
+                call. = FALSE)
+        stop("Invalid variable types detected. See the warning message for more details.",
+             call. = FALSE)
+      }
+      if(length(type) != ncol(data)) {
+        stop("When 'type' is a vector, its length (", length(type), ") must equal ",
+             "the number of columns in 'data' (", ncol(data), ").",
+             call. = FALSE)
+      }
+      # Map "binary" to "ordinal" internally
+      type[type == "binary"] <- "ordinal"
+      package <- "package_bgms"
+      
+      if(!is_vector_type && length(type) == 1 && type == "mixed" && is.null(not_cont)){
+        stop("Please provide a binary vector of length p specifying the not continuous variables
          (1 = not continuous, 0 = continuous).",
-         call. = FALSE)
+             call. = FALSE)
+      }
+    }
+  } else if(packageVersion("bgms") < "0.2.0.0"){
+    if(type == "mixed" & is.null(not_cont)){
+      stop("Please provide a binary vector of length p specifying the not continuous variables
+         (1 = not continuous, 0 = continuous).",
+           call. = FALSE)
+    }
   }
+  
+  
   
   dots <- list(...)
   # reference_category still needs to be checked for backwards compatability
@@ -361,18 +378,39 @@ easybgm <- function(data, type, package = NULL,
          call. = FALSE)
   }
   
-  
-  # Set default values for fitting if package is unspecified
-  if(any(type == "blume-capel")){
-    package <- "package_bgms"
-  } else if(is_vector_type){
-    package <- "package_bgms"
-  } else if(is.null(package)){
-    package <- "package_bgms"
-  } else {
-    if(package == "BDgraph") package <- "package_bdgraph"
-    if(package == "BGGM") package <- "package_bggm"
-    if(package == "bgms") package <- "package_bgms"
+  # Set different defaults per package type
+  if(packageVersion("bgms") > "0.1.6.3"){
+    # Set default values for fitting if package is unspecified
+    if(any(type == "blume-capel")){
+      package <- "package_bgms"
+    } else if(is_vector_type){
+      package <- "package_bgms"
+    } else if(is.null(package)){
+      package <- "package_bgms"
+      warning("Note that from bgms version 0.2.0.0 onwards, the default fit 
+              package changed for continuous and mixed data and is also 
+              bgms. If you prefer another package you can specify it with the 
+              package argument.",
+              call. = FALSE)
+    } else {
+      if(package == "BDgraph") package <- "package_bdgraph"
+      if(package == "BGGM") package <- "package_bggm"
+      if(package == "bgms") package <- "package_bgms"
+    }
+  } else if(packageVersion("bgms") < "0.2.0.0"){
+    # Set default values for fitting if package is unspecified
+    if(is.null(package)){
+      if(type == "continuous") package <- "package_bggm"
+      if(type == "mixed") package <- "package_bggm"
+      if(type == "ordinal") package <- "package_bgms"
+      if(type == "binary") package <- "package_bgms"
+      if(type == "blume-capel") package <- "package_bgms"
+    } else {
+      if(package == "BDgraph") package <- "package_bdgraph"
+      if(package == "BGGM") package <- "package_bggm"
+      if(package == "bgms") package <- "package_bgms"
+      if(type == "binary") package <- "package_bgms"
+    }
   }
   
   # change the default number of iterations depending on the underlying package
@@ -381,6 +419,7 @@ easybgm <- function(data, type, package = NULL,
   } else if (iter == 1e3 && package == "package_bggm"){
     iter <- 1e4
   }
+  
   
   if(length(type) == 1 && type == "continuous" && package == "package_bdgraph" && any(is.na(data))){
     stop("The data contains missing values which cannot be handled as continuous data by BDgraph (GGM). ",
@@ -403,6 +442,7 @@ easybgm <- function(data, type, package = NULL,
     {fit <- bgm_fit(fit, data = data, type = type, not_cont = not_cont, iter = iter,
                     save = save, centrality = centrality, progress = progress, 
                     baseline_category = baseline_category, ...)
+
     },
     error = function(e){
       # If an error occurs, stop running the code
@@ -416,7 +456,7 @@ easybgm <- function(data, type, package = NULL,
                      data = data, centrality = centrality, 
                      iter = iter,
                      ...)
-
+  
   if(any(class(res) == "package_bgms")){
     if(any(res$convergence_parameter > 1.01, na.rm = TRUE)){
       warning("One or more of the convergence statistics are larger than 1.01.

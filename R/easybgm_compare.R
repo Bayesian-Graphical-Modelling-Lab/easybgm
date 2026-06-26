@@ -218,36 +218,44 @@ easybgm_compare <- function(data,
          call. = FALSE)
   }
   
-  # --- Handle vector type (per-variable specification) ---
-  is_vector_type <- length(type) > 1
-  
-  if(is_vector_type) {
-    valid_types <- c("ordinal", "blume-capel", "binary")
-    invalid <- type[!type %in% valid_types]
-    if(length(invalid) > 0) {
-      warning("The following variable type(s) are not recognized for group comparison: ",
-              paste0("'", unique(invalid), "'", collapse = ", "), ". ",
-              "Valid types are: ", paste(valid_types, collapse = ", "), ". ",
-              "Note: 'continuous' is not supported for group comparison via bgms.",
-              call. = FALSE)
-      stop("Invalid variable types detected. See the warning message for more details.",
-           call. = FALSE)
+  if(packageVersion("bgms") > "0.1.6.3"){
+    # --- Handle vector type (per-variable specification) ---
+    is_vector_type <- length(type) > 1
+    
+    if(is_vector_type) {
+      valid_types <- c("ordinal", "blume-capel", "binary")
+      invalid <- type[!type %in% valid_types]
+      if(length(invalid) > 0) {
+        warning("The following variable type(s) are not recognized for group comparison: ",
+                paste0("'", unique(invalid), "'", collapse = ", "), ". ",
+                "Valid types are: ", paste(valid_types, collapse = ", "), ". ",
+                "Note: 'continuous' is not supported for group comparison via bgms.",
+                call. = FALSE)
+        stop("Invalid variable types detected. See the warning message for more details.",
+             call. = FALSE)
+      }
+      ncols <- if(is.list(data) && !is.data.frame(data)) ncol(data[[1]]) else ncol(data)
+      if(length(type) != ncols) {
+        stop("When 'type' is a vector, its length (", length(type), ") must equal ",
+             "the number of columns in 'data' (", ncols, ").",
+             call. = FALSE)
+      }
+      type[type == "binary"] <- "ordinal"
+      package <- "package_bgms_compare"
     }
-    ncols <- if(is.list(data) && !is.data.frame(data)) ncol(data[[1]]) else ncol(data)
-    if(length(type) != ncols) {
-      stop("When 'type' is a vector, its length (", length(type), ") must equal ",
-           "the number of columns in 'data' (", ncols, ").",
-           call. = FALSE)
-    }
-    type[type == "binary"] <- "ordinal"
-    package <- "package_bgms_compare"
-  }
-  
-
-  if(!is_vector_type && length(type) == 1 && type == "mixed" && is.null(not_cont)){
-    stop("Please provide a binary vector of length p specifying the not continuous variables
+    
+    
+    if(!is_vector_type && length(type) == 1 && type == "mixed" && is.null(not_cont)){
+      stop("Please provide a binary vector of length p specifying the not continuous variables
          (1 = not continuous, 0 = continuous).",
-         call. = FALSE)
+           call. = FALSE)
+    }
+  } else if(packageVersion("bgms") < "0.2.0.0"){
+    if(type == "mixed" & is.null(not_cont)){
+      stop("Please provide a binary vector of length p specifying the not continuous variables
+         (1 = not continuous, 0 = continuous).",
+           call. = FALSE)
+    }
   }
   
   
@@ -264,7 +272,7 @@ easybgm_compare <- function(data,
   # Set default values for fitting if package is unspecified
   if(type %in% c("blume-capel", "ordinal")){
     package <- "package_bgms_compare"
-  } else if(is_vector_type){
+  } else if(length(type) > 1){
     package <- "package_bgms_compare"
   } else if(is.null(package)){
     if(type == "ordinal") package <- "package_bgms_compare"
