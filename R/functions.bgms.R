@@ -93,7 +93,12 @@ bgm_extract.package_bgms <- function(fit, type, save, iter,
     }
   }
   
-  class(fit) <- "bgms"
+  # Do not overwrite the class unconditionally: bgms (>= 0.2.0.0) fit objects
+  # are S7 (class c("bgms", "S7_object")) and rely on the S7_object class for
+  # `$`/`[[` access via S7::prop(). Stripping it to plain "bgms" breaks those
+  # accessors. The object already inherits "bgms" in every path, so only set
+  # the class in the (defensive) case where it somehow does not.
+  if(!inherits(fit, "bgms")) class(fit) <- "bgms"
   
   # --- Extract model arguments and edge priors ---
   args <- bgms::extract_arguments(fit)

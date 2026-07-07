@@ -85,13 +85,14 @@ bgm_extract.package_bgms_compare <- function(fit, type, save, group_indicator,
     args$save <- TRUE
     dots <- list(...)
     if (args$difference_prior[1] == "Bernoulli") {
-      if("difference_probability" %in% dots){
-        edge.prior <- args$difference_probability
-        args$inclusion_probability_difference <- edge.prior
-      } else {
-        edge.prior <- 0.5
-        args$inclusion_probability_difference <- edge.prior
-      }
+      # Read the difference prior inclusion probability straight from the fit.
+      # bgms stores it in args$inclusion_probability (a uniform matrix for a
+      # Bernoulli prior), so [1] recovers the scalar the user specified via
+      # difference_prior / difference_probability. This replaces an earlier
+      # guard `"difference_probability" %in% dots` (should have been
+      # `%in% names(dots)`) that also read a non-existent args field.
+      edge.prior <- args$inclusion_probability[1]
+      args$inclusion_probability_difference <- edge.prior
     } else { # if BB or SBM
       edge.prior <- args$difference_selection_alpha /
         (args$difference_selection_alpha + args$difference_selection_beta)
@@ -138,13 +139,14 @@ bgm_extract.package_bgms_compare <- function(fit, type, save, group_indicator,
     args$save <- TRUE
     dots <- list(...)
     if (args$difference_prior[1] == "Bernoulli") {
-      if("difference_probability" %in% dots){
-        edge.prior <-  args$difference_probability
-        args$inclusion_probability_difference <- edge.prior
-      } else {
-        edge.prior <- 0.5
-        args$inclusion_probability_difference <- edge.prior
-      }
+      # Read the difference prior inclusion probability straight from the fit.
+      # bgms stores it in args$inclusion_probability (a uniform matrix for a
+      # Bernoulli prior), so [1] recovers the scalar the user specified via
+      # difference_prior / difference_probability. This replaces an earlier
+      # guard `"difference_probability" %in% dots` (should have been
+      # `%in% names(dots)`) that also read a non-existent args field.
+      edge.prior <- args$inclusion_probability[1]
+      args$inclusion_probability_difference <- edge.prior
     } else { # if BB or SBM
       edge.prior <- args$difference_selection_alpha /
         (args$difference_selection_alpha + args$difference_selection_beta)
