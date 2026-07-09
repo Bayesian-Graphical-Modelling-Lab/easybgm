@@ -1,30 +1,15 @@
 #' @export
 
 plot_structure_probabilities.bgmCompare <- function(output, as_BF = FALSE, ...) {
-  if(packageVersion("bgms") < "0.1.4"){
-    stop("Your version of the package bgms is not supported anymore. Please update.")
-  }
-  
-  if(is.null(output$structure_probabilities)){
-    stop("The model was fitted without structure selection or saving the posterior samples. Therefore, the plot cannot be obtained. Make sure the model is fitted with difference_selection and save set to TRUE.",
-         call. = FALSE)
-  }
-  
   fit_args <- bgms::extract_arguments(output)
-  
-  if (packageVersion("bgms") < "0.1.6.0" ) {
-    if(!(fit_args$save)){
-      stop("Please run your bgmCompare function with save = T.")
-    }
-  }
   
   res <- bgm_extract.package_bgms_compare(fit = output, save = TRUE,
                                           type = NULL, not_cont = NULL, data = NULL,
                                           group_indicator = NULL,
-                                          edge_prior = fit_args$pairwise_difference_prior,
-                                          inclusion_probability  = fit_args$inclusion_probability_difference,
-                                          beta_bernoulli_alpha = fit_args$pairwise_beta_bernoulli_alpha,
-                                          beta_bernoulli_beta = fit_args$pairwise_beta_bernoulli_beta)
+                                          edge_prior = fit_args$difference_prior,
+                                          inclusion_probability  = fit_args$inclusion_probability,
+                                          beta_bernoulli_alpha = fit_args$difference_selection_alpha,
+                                          beta_bernoulli_beta = fit_args$difference_selection_beta)
   output <- res
   
   
@@ -87,30 +72,15 @@ plot_structure_probabilities.bgmCompare <- function(output, as_BF = FALSE, ...) 
 
 plot_complexity_probabilities.bgmCompare <- function(output, ...) {
   
-  if(packageVersion("bgms") < "0.1.4"){
-    stop("Your version of the package bgms is not supported anymore. Please update.")
-  }
-  
   fit_args <- bgms::extract_arguments(output)
-  
-  if(is.null(output$structure_probabilities)){
-    stop("The model was fitted without structure selection or saving the posterior samples. Therefore, the plot cannot be obtained. Make sure the model is fitted with difference_selection and save set to TRUE.",
-         call. = FALSE)
-  }
-  
-  if (packageVersion("bgms") < "0.1.6.0") {
-    if(!(fit_args$save)){
-      stop("Please run your bgmCompare function with save = T.")
-    }
-  }
   
   res <- bgm_extract.package_bgms_compare(fit = output, save = TRUE,
                                           type = NULL, not_cont = NULL, data = NULL,
                                           group_indicator = NULL,
-                                          edge_prior = fit_args$pairwise_difference_prior,
-                                          inclusion_probability  = fit_args$inclusion_probability_difference,
-                                          beta_bernoulli_alpha = fit_args$pairwise_beta_bernoulli_alpha,
-                                          beta_bernoulli_beta = fit_args$pairwise_beta_bernoulli_beta)
+                                          edge_prior = fit_args$difference_prior,
+                                          inclusion_probability  = fit_args$inclusion_probability,
+                                          beta_bernoulli_alpha = fit_args$difference_selection_alpha,
+                                          beta_bernoulli_beta = fit_args$difference_selection_beta)
   output <- res
   
   # Specify default arguments for function
@@ -159,40 +129,36 @@ plot_complexity_probabilities.bgmCompare <- function(output, ...) {
 
 #' @export
 
-plot_edgeevidence.bgmCompare <- function(output, 
+plot_edgeevidence.bgmCompare <- function(output,
                                          evidence_thresh = NULL,
-                                         evidence_thresh_strong = 10, 
+                                         evidence_thresh_strong = 10,
                                          evidence_thresh_weak = 3,
-                                         edge_legend = TRUE, 
-                                         split = FALSE, show = "all", 
+                                         edge_legend = TRUE,
+                                         split = FALSE, show = "all",
                                          ...) {
-  
+
   if(packageVersion("bgms") < "0.1.4"){
     stop("Your version of the package bgms is not supported anymore. Please update.")
   }
-  
-  if(is.null(output$inc_probs)){
+
+  fit_args <- bgms::extract_arguments(output)
+
+  # On a raw bgmCompare S7 object, $inc_probs does not exist; fall back to
+  # difference_selection from the fit arguments.
+  if(isFALSE(fit_args$difference_selection)) {
     stop("The model was fitted without edge selection and no inclusion probabilities were obtained. Therefore, the plot cannot be obtained. Run the model with difference_selection set to TRUE.",
          call. = FALSE)
   }
-  
+
   warning("Note, the plot indicates the edge evidence for the pairwise difference between the groups.")
-  
-  fit_args <- bgms::extract_arguments(output)
-  
-  if (packageVersion("bgms") < "0.1.6.0") {
-    if(!(fit_args$save)){
-      stop("Please run your bgmCompare function with save = T.")
-    }
-  }
   
     res <- bgm_extract.package_bgms_compare(fit = output, save = TRUE,
                                             type = NULL, not_cont = NULL, data = NULL,
                                             group_indicator = NULL,
-                                            edge_prior = fit_args$pairwise_difference_prior,
-                                            inclusion_probability  = fit_args$inclusion_probability_difference,
-                                            beta_bernoulli_alpha = fit_args$pairwise_beta_bernoulli_alpha,
-                                            beta_bernoulli_beta = fit_args$pairwise_beta_bernoulli_beta)
+                                            edge_prior = fit_args$difference_prior,
+                                            inclusion_probability  = fit_args$inclusion_probability,
+                                            beta_bernoulli_alpha = fit_args$difference_selection_alpha,
+                                            beta_bernoulli_beta = fit_args$difference_selection_beta)
   
 
   output <- res
@@ -425,28 +391,18 @@ plot_network.bgmCompare <- function(output, exc_prob = .5,
                                     evidence_thresh_strong = 10, 
                                     dashed = TRUE, ...) {
   
-  if(packageVersion("bgms") < "0.1.4"){
-    stop("Your version of the package bgms is not supported anymore. Please update.")
-  }
-  
   warning("Note, the plot indicates the strength of the pairwise difference in edge parameters between the groups.")
-  
+
   fit_args <- bgms::extract_arguments(output)
-  
-  if (packageVersion("bgms") < "0.1.6.0") {
-    if(!(fit_args$save)){
-      stop("Please run your bgmCompare function with save = T.")
-    }
-  }
   
 
     res <- bgm_extract.package_bgms_compare(fit = output, save = TRUE,
                                             type = NULL, not_cont = NULL, data = NULL,
                                             group_indicator = NULL,
-                                            edge_prior = fit_args$pairwise_difference_prior,
-                                            inclusion_probability  = fit_args$inclusion_probability_difference,
-                                            beta_bernoulli_alpha = fit_args$pairwise_beta_bernoulli_alpha,
-                                            beta_bernoulli_beta = fit_args$pairwise_beta_bernoulli_beta)
+                                            edge_prior = fit_args$difference_prior,
+                                            inclusion_probability  = fit_args$inclusion_probability,
+                                            beta_bernoulli_alpha = fit_args$difference_selection_alpha,
+                                            beta_bernoulli_beta = fit_args$difference_selection_beta)
   
   output <- res
   
@@ -500,28 +456,20 @@ plot_network.bgmCompare <- function(output, exc_prob = .5,
 
 plot_structure.bgmCompare <- function(output, ...) {
   
-  if(packageVersion("bgms") < "0.1.4"){
-    stop("Your version of the package bgms is not supported anymore. Please update.")
-  }
   
 
   warning("Note, the plot indicates the structure of the pairwise difference between the groups.")
   
   fit_args <- bgms::extract_arguments(output)
   
-  if (packageVersion("bgms") < "0.1.6.0") {
-    if(!(fit_args$save)){
-      stop("Please run your bgmCompare function with save = T.")
-    }
-  }
   
     res <- bgm_extract.package_bgms_compare(fit = output, save = TRUE,
                                             type = NULL, not_cont = NULL, data = NULL,
                                             group_indicator = NULL,
-                                            edge_prior = fit_args$pairwise_difference_prior,
-                                            inclusion_probability  = fit_args$inclusion_probability_difference,
-                                            beta_bernoulli_alpha = fit_args$pairwise_beta_bernoulli_alpha,
-                                            beta_bernoulli_beta = fit_args$pairwise_beta_bernoulli_beta)
+                                            edge_prior = fit_args$difference_prior,
+                                            inclusion_probability  = fit_args$inclusion_probability,
+                                            beta_bernoulli_alpha = fit_args$difference_selection_alpha,
+                                            beta_bernoulli_beta = fit_args$difference_selection_beta)
   
   output <- res
   
@@ -557,34 +505,22 @@ plot_structure.bgmCompare <- function(output, ...) {
 
 plot_parameterHDI.bgmCompare <- function(output, ...) {
   
-  if(packageVersion("bgms") < "0.1.4"){
-    stop("Your version of the package bgms is not supported anymore. Please update.")
-  }
   
   
-  if (packageVersion("bgms") > "0.1.4.2") {
-    warning("Note, the plot indicates the posterior highest density interval of the overall group edges.")
-  } else {
-    warning("Note, the plot indicates the posterior highest density interval for subgroup differences.")
-  }
+  warning("Note, the plot indicates the posterior highest density interval of the overall group edges.")
   
   
   fit_args <- bgms::extract_arguments(output)
   
-  if (packageVersion("bgms") < "0.1.6.0") {
-    if(!(fit_args$save)){
-      stop("Please run your bgmCompare function with save = T.")
-    }
-  }
   
 
     res <- bgm_extract.package_bgms_compare(fit = output, save = TRUE,
                                             type = NULL, not_cont = NULL, data = NULL,
                                             group_indicator = NULL,
-                                            edge_prior = fit_args$pairwise_difference_prior,
-                                            inclusion_probability  = fit_args$inclusion_probability_difference,
-                                            beta_bernoulli_alpha = fit_args$pairwise_beta_bernoulli_alpha,
-                                            beta_bernoulli_beta = fit_args$pairwise_beta_bernoulli_beta)
+                                            edge_prior = fit_args$difference_prior,
+                                            inclusion_probability  = fit_args$inclusion_probability,
+                                            beta_bernoulli_alpha = fit_args$difference_selection_alpha,
+                                            beta_bernoulli_beta = fit_args$difference_selection_beta)
   
   output <- res
   

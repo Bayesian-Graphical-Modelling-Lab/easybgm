@@ -8,170 +8,311 @@ easybgm(
   data,
   type,
   package = NULL,
-  not_cont = NULL,
-  iter = 1000,
   save = FALSE,
   centrality = FALSE,
+  iter = 1000,
   progress = TRUE,
+  baseline_category = NULL,
+  not_cont = NULL,
   ...
 )
 }
 \arguments{
-\item{data}{An n x p matrix or dataframe containing the variables for n independent observations on p variables.}
+\item{data}{An n x p matrix or dataframe containing the variables for n
+independent observations on p variables.}
 
-\item{type}{What is the data type? Options: continuous, mixed, ordinal, binary, or blume-capel.}
+\item{type}{Specifies the type of data. There are two ways to use this argument:
 
-\item{package}{The R-package that should be used for fitting the network model; supports BGGM, BDgraph, and bgms. Optional argument;
-default values are specified depending on the datatype.}
+\strong{1. A single string}:
+\itemize{
+\item \code{"continuous"}: For continuous (Gaussian) data. Estimates a
+Gaussian Graphical Model (GGM).
+\item \code{"ordinal"}: For ordinal (Likert-type) data. Estimates an
+Ordinal Markov Random Field (OMRF).
+\item \code{"binary"}: For binary (0/1) data. Estimates an Ising model.
+\item \code{"blume-capel"}: For Blume-Capel ordinal data. Requires a
+reference category via the \code{baseline_category} argument.
+\item \code{"mixed"}: For data with both continuous and discrete
+variables. Requires the \code{not_cont} argument to indicate which
+variables are not continuous (see below). This value should only be specified when
+fitting a mixed model using \code{package = "BDgraph"} or \code{package = "BGGM"}.
+See below on how to specify mixed models using bgms.
+}
 
-\item{not_cont}{If data-type is mixed, a vector of length p, specifying the not-continuous
-variables (1 = not continuous, 0 = continuous).}
+\strong{2. A character vector of length p} (per-variable specification,
+\code{bgms} only from package version 0.2.0.0): Each element specifies the
+type of the corresponding column in \code{data}. Valid values are
+\code{"ordinal"}, \code{"continuous"},\code{"blume-capel"},
+and \code{"binary"}.
 
-\item{iter}{number of iterations for the sampler. Default is set to 1e3 but the recommended number of samples depends on the underlying package and sampler used. For data fit with BDgraph and BGGM, the default is set to 1e4.}
+For example: \code{type = c("ordinal", "ordinal", "continuous")} specifies
+that the first two columns are ordinal and the third is continuous.
 
-\item{save}{Logical. Should the posterior samples be obtained (default = FALSE)?}
+\emph{Note:} Per-variable type vectors are only supported with the
+\code{bgms} package.}
 
-\item{centrality}{Logical. Should the centrality measures be extracted (default = FALSE)? Note, that it will significantly increase the computation time.}
+\item{package}{The R-package used for fitting the network model. Optional;
+if not specified and \code{bgms} version < 0.2.0.0, \code{bgms} is used for
+the fit of binary, ordinal, and blume-capel data and \code{BGGM} for
+continuous and mixed data.
+if not specified and \code{bgms} version >= 0.2.0.0, \code{bgms} is used as
+the default for all data types.
+Supported options:
+\itemize{
+\item \code{bgms} (Default): Supports the following data types: continuous,
+ordinal, binary, and blume-capel or a combination of the three.
+\item \code{BDgraph}: Supports continuous (fits a GGM), mixed (fits a
+GCGM). For continuous data, missing values are not
+allowed; use \code{na.omit()} on the data first.
+\item \code{"BGGM"}: Supports continuous and mixed data.
+}}
 
-\item{progress}{Logical. Should a progress bar be shown (default = TRUE)?}
+\item{save}{Logical. Should the posterior samples be obtained
+(default = \code{FALSE})? If \code{TRUE}, the output includes a
+\code{samples_posterior} matrix with the posterior samples for each edge
+weight parameter. Setting \code{centrality = TRUE} automatically sets
+\code{save = TRUE}.}
 
-\item{...}{Additional arguments that are handed to the fitting functions of the packages, e.g., informed prior specifications.}
+\item{centrality}{Logical. Should the centrality measures be extracted
+(default = \code{FALSE})? Note that this will significantly increase
+computation time. Automatically sets \code{save = TRUE}.}
+
+\item{iter}{Number of iterations for the sampler. The default depends on the
+package:
+\itemize{
+\item \code{bgms}: 1e3 (1,000 iterations)
+\item \code{BDgraph}: 1e4 (10,000 iterations)
+\item \code{BGGM}: 1e4 (10,000 iterations)
+}
+The recommended number of iterations depends on the data, model complexity,
+and desired precision. Check the convergence diagnostics in the output to
+determine if more iterations are needed.}
+
+\item{progress}{Logical. Should a progress bar be shown
+(default = \code{TRUE})?}
+
+\item{baseline_category}{Integer or vector, required if at least one variable
+is of type \code{"blume-capel"}. Baseline category used in
+Blume--Capel variables. Can be a single integer (applied to all) or a
+vector of length \code{p}.}
+
+\item{not_cont}{A binary vector of length p, required when
+\code{type = "mixed"} and a single string is used. Each element indicates
+whether the corresponding variable is not continuous
+(\code{1} = not continuous/ordinal, \code{0} = continuous). This is used to
+construct a per-variable type vector internally. Only neccesary when
+using \code{package = "BDgraph"} or \code{package = "BGGM"}.}
+
+\item{...}{Additional arguments passed to the fitting functions of the
+underlying packages (e.g., prior specifications). See the
+\strong{Prior specification} section in Details for available prior options per
+package and the package help files for all other potential arguments.}
 }
 \value{
-The returned object of \code{easybgm} contains several elements:
+An object of class \code{easybgm} containing the following elements:
 
+\strong{Always returned:}
 \itemize{
-
-\item \code{parameters} A p x p matrix containing partial associations.
-
-\item \code{inc_probs} A p x p matrix containing the posterior inclusion probabilities.
-
-\item \code{BF} A p x p matrix containing the posterior inclusion Bayes factors.
-
-\item \code{structure} Adjacency matrix of the median probability model (i.e., edges with a posterior probability larger 0.5).
+\item \code{parameters}: A p x p matrix of posterior mean partial
+association estimates.
+\item \code{inc_probs}: A p x p matrix of posterior inclusion
+probabilities.
+\item \code{inc_BF}: A p x p matrix of posterior inclusion Bayes factors.
+\item \code{structure}: A p x p adjacency matrix of the median probability
+model (edges with posterior inclusion probability > 0.5).
+\item \code{model}: A string indicating the model type (e.g.,
+\code{"continuous"}, \code{"ordinal"}, \code{"mixed"}).
+\item \code{thresholds}: Threshold/intercept parameters (bgms only). The
+format depends on the model type: a matrix for ordinal/binary models,
+\code{NULL} for continuous models, or a list for mixed models.
 }
 
-In addition, for \code{BDgraph} and \code{bgms}, the function returns:
-
+\strong{Returned for bgms and BDgraph:}
 \itemize{
-
-\item \code{structure_probabilities} A vector containing the posterior probabilities of all visited structures, between 0 and 1.
-
-\item \code{graph_weights} A vector containing the number of times a particular structure was visited.
-
-\item \code{sample_graphs} A vector containing the indexes of a particular structure.
-
-For the \code{bgms} package, when \code{edge_prior = "Stochastic-Block"},
-the function will also return an object \code{sbm} which contains:
-\itemize{
-
-\item \code{posterior_num_blocks} A data frame with the estimated posterior
-probability of the possible number of clusters.
-
-\item \code{posterior_mean_allocations} The posterior mean of the cluster assignments of the nodes.
-
-\item \code{posterior_mode_allocations} The posterior mode of the cluster assignments of the nodes.
-
-\item \code{posterior_mean_coclustering_matrix} A p x p matrix containing the estimated
-pairwise proportions of cluster occurrence of every variable. This matrix
-can be plotted to visually inspect the estimated number of clusters
-and visually inspect nodes that tend to switch clusters.
-
-}
+\item \code{structure_probabilities}: Posterior probabilities of all
+visited graph structures (values between 0 and 1).
+\item \code{graph_weights}: Number of times each graph structure was
+visited.
+\item \code{sample_graphs}: Identifiers for each visited graph structure.
 }
 
-If using version 0.1.6.1 or higher of the \code{bgms} package, the function also returns the
-the Gelman-Rubin convergence statistic for each edge weight parameter. As well as the
-95\% Monte Carlo confidence interval for the inclusion Bayes factor.
-
-For all packages, when setting \code{save = TRUE} and \code{centrality = TRUE}, the function will return the following objects respectively:
-
+\strong{Returned for bgms only:}
 \itemize{
+\item \code{convergence_parameter}: The Gelman-Rubin (R-hat) convergence
+statistic for each edge weight parameter. Values close to 1 indicate good
+convergence.
+\item \code{MCSE_BF}: A matrix with the 95 percent Monte Carlo confidence
+interval for each inclusion Bayes factor.
+}
 
-\item \code{samples_posterior} A k x iter matrix containing the posterior samples for each parameter (i.e., k = (p/(p-1))/2) at each iteration (i.e., iter) of the sampler.
+\strong{Returned when edge_prior = "Stochastic-Block" (bgms only):}
+\itemize{
+\item \code{sbm}: A list containing Stochastic Block Model results, including
+\code{posterior_num_blocks} (posterior probabilities for each number of
+clusters), \code{posterior_mean_allocations} (posterior mean cluster
+assignments), \code{posterior_mode_allocations} (posterior mode cluster
+assignments), and \code{posterior_mean_coclustering_matrix} (a p x p matrix
+of pairwise co-clustering proportions).
+}
 
-\item \code{centrality} A p x iter matrix containing the centrality of a node at each iteration of the sampler.
+\strong{Interpretable parameter scales (bgms only):}
+
+In addition to the raw pairwise interaction parameters in
+\code{parameters}, the following transformations are provided when the
+model type supports them. They are \code{NULL} otherwise.
+\itemize{
+\item \code{partial_correlations}: A matrix of posterior mean partial
+correlations. Available for continuous (GGM) models (full p x p matrix)
+and for the continuous block of mixed models. \code{NULL} for ordinal
+models.
+\item \code{precision_matrix}: The posterior mean precision
+(inverse covariance) matrix. Same availability as partial correlations.
+\item \code{log_odds}: A matrix of posterior mean log adjacent-category
+odds ratios. Available for ordinal/binary models (full p x p matrix)
+and for the discrete block of mixed models. \code{NULL} for continuous
+models.
+}
+
+\strong{Returned when save = TRUE:}
+\itemize{
+\item \code{samples_posterior}: A k x iter matrix of posterior samples for
+each edge weight parameter (k = p*(p-1)/2 edges).
+}
+
+\strong{Returned when centrality = TRUE:}
+\itemize{
+\item \code{centrality}: An iter x p matrix of centrality values for each
+node at each iteration.
 }
 }
 \description{
-Easy estimation of a Bayesian analysis of networks to obtain conditional (in)dependence relations between variables in a network.
+Easy estimation of a Bayesian graphical models to obtain
+conditional (in)dependence relations between variables in a network.
 }
 \details{
-Users may oftentimes wish to deviate from the default, usually uninformative, prior specifications of the
-packages to informed priors. This can be done by simply adding additional arguments to the \code{easybgm} function.
-Depending on the package that is running the underlying network estimation, researcher can specify different prior
-arguments. We give an overview of the prior arguments per package below.
+\strong{Data types and package support}
 
-\strong{bgms}:
+The table below summarizes which data types are supported by each backend
+package:
 
-\itemize{
-
-\item \code{interaction_scale} the scale of the Cauchy distribution that is used as a
-prior for the pairwise interaction parameters. The default is 2.5.
-
-\item \code{edge_prior} prior on the graph structure, which can be either "Bernoulli", "Beta-Bernoulli" or "Stochastic Block". The default is "Bernoulli".
-
-\item \code{inclusion_probability} prior edge inclusion probability for the "Bernoulli" distribution. The default is 0.5.
-
-\item \code{beta_bernoulli_alpha} and \code{beta_bernoulli_beta} the parameters of the "Beta-Bernoulli" or "Stochastic Block" priors. The default is 1 for both.
-
-\item \code{beta_bernoulli_alpha_between} and \code{beta_bernoulli_beta_between} the parameters of the "Stochastic Block" prior for edges between blocks.
-This is currently only available in a developer version of bgms and will be available in version 0.1.6.2 or higher.
-
-\item \code{dirichlet_alpha} The shape of the Dirichlet prior on the node-to-block
-allocation parameters for the Stochastic Block prior on the graph structure.
-
-\item \code{threshold_alpha} and \code{threshold_beta} the parameters of the beta-prime distribution for the threshold parameters. The defaults are both set to 1.
-
-\item \code{variable_type} What kind of variables are there in \code{x}? Can be a
-single character string specifying the variable type of all \code{p}
-variables at once or a vector of character strings of length \code{p}
-specifying the type for each variable in \code{x} separately. Currently, bgm
-supports \verb{ordinal'' and }blume-capel''. Binary variables are automatically
-treated as ``ordinal’’. Defaults to \code{variable_type = "ordinal"}.
-
+\tabular{lccc}{
+\strong{Data type}    \tab \strong{bgms} \tab \strong{BDgraph} \tab \strong{BGGM} \cr
+continuous             \tab Yes (default)  \tab Yes              \tab Yes           \cr
+ordinal                \tab Yes (default)  \tab Yes              \tab No            \cr
+binary                 \tab Yes (always)   \tab No               \tab No            \cr
+mixed                  \tab Yes (default)  \tab Yes              \tab Yes           \cr
+blume-capel            \tab Yes (default)  \tab No               \tab No            \cr
 }
 
-\strong{BDgraph}:
+\strong{How \code{type} and \code{not_cont} relate}
 
-\itemize{
-
-\item \code{df.prior} prior on the parameters (i.e., inverse covariance matrix), degrees of freedom of the prior G-Wishart distribution. The default is set to 3.
-
-\item \code{g.prior} prior probability of edge inclusion. This can be either a scalar, if it is the same for all edges, or a matrix, if it should be different among the edges. The default is set to 0.5.
-
+There are two ways to specify mixed-type data:
+\enumerate{
+\item \strong{Using \code{type = "mixed"} with \code{not_cont}}: Set
+\code{type = "mixed"} and provide a binary vector \code{not_cont} of
+length p. Internally, this is translated to a per-variable type vector
+where \code{not_cont == 1} maps to \code{"ordinal"} and
+\code{not_cont == 0} maps to \code{"continuous"}.
+\item \strong{Using a per-variable type vector} (bgms only): Directly
+specify the type of each variable, e.g.,
+\code{type = c("ordinal", "continuous", "ordinal")}. This is more
+flexible and does not require the \code{not_cont} argument.
 }
-\strong{BGGM}:
 
+\strong{Prior specification}
+
+Users may wish to deviate from the default (uninformative) prior
+specifications. This can be done by passing additional arguments via
+\code{...} to the fitting function of the chosen package. We give an
+overview of the available prior arguments per package below.
+
+\emph{bgms} (>= 0.2.0.0): the preferred interface uses prior-constructor
+objects from the \code{bgms} package. Pass them through \code{...}:
 \itemize{
-
-\item \code{prior_sd} the standard deviation of the prior distribution of the interaction parameters, approximately the scale of a beta distribution. The default is 0.25.
+\item \code{interaction_prior}: A parameter prior on pairwise interactions.
+Use \code{\link[bgms]{cauchy_prior}(scale)} (default
+\code{cauchy_prior(scale = 1)}), \code{\link[bgms]{normal_prior}(scale)},
+or \code{\link[bgms]{beta_prime_prior}(alpha, beta)}.
+For example, a cauchy prior with scale 1 would be specified with adding the
+argument \code{interaction_prior = cauchy_prior(1)} to the easybgm call.
+\item \code{threshold_prior}: A parameter prior on threshold (main effect)
+parameters. Use \code{\link[bgms]{beta_prime_prior}(alpha, beta)}
+(default \code{beta_prime_prior(0.5, 0.5)}),
+\code{\link[bgms]{cauchy_prior}(scale)}, or
+\code{\link[bgms]{normal_prior}(scale)}.
+For example, a cauchy prior with scale 1 would be specified with adding the
+argument \code{threshold_prior = cauchy_prior(1)} to the easybgm call.
+\item \code{means_prior}: A prior on the means of continuous variables in
+mixed MRF models. Default \code{normal_prior(scale = 1)}.
+\item \code{precision_scale_prior}: A prior on the diagonal entries of the
+precision matrix (GGM and mixed MRF). Use
+\code{\link[bgms]{gamma_prior}(shape, rate)} (default) or
+\code{\link[bgms]{exponential_prior}(rate)}.
+\item \code{edge_prior}: An indicator prior on edge inclusion. Use
+\code{\link[bgms]{bernoulli_prior}(inclusion_probability)} (default
+\code{bernoulli_prior(0.5)}; \code{inclusion_probability} can also be a
+symmetric \eqn{p \times p} matrix of edge-specific probabilities),
+\code{\link[bgms]{beta_bernoulli_prior}(alpha, beta)}, or
+\code{\link[bgms]{sbm_prior}(alpha, beta, alpha_between, beta_between, dirichlet_alpha, lambda)}
+for the Stochastic Block Model prior.
+For example, a bernoulli prior with prior probabilit of 0.5 would be
+specified with adding the argument \code{edge_prior = bernoulli_prior(0.5)}
+to the easybgm call.
 }
 
-We would always encourage researcher to conduct prior robustness checks.
+\emph{BDgraph}:
+\itemize{
+\item \code{df.prior}: Degrees of freedom of the prior G-Wishart
+distribution on the precision matrix. Default is 3.
+\item \code{g.prior}: Prior probability of edge inclusion. Can be a
+scalar (same for all edges) or a matrix (edge-specific).
+This can also be a symmetric pxp matrix of edge-specific inclusion probabilities.
+Default is 0.5.
+}
+
+\emph{BGGM}:
+\itemize{
+\item \code{prior_sd}: Standard deviation of the prior on interaction
+parameters (approximately the scale of a beta distribution). Default is
+0.25.
+}
+
+We encourage researchers to conduct prior sensitivity checks.
 }
 \examples{
-
 
 library(easybgm)
 library(bgms)
 
-data <- na.omit(Wenchuan)
+data <- na.omit(Wenchuan)[1:100, 1:5]
 
-# Fitting the Wenchuan PTSD data
-
+# --- Continuous data (default: bgms) ---
 fit <- easybgm(data, type = "continuous",
-                iter = 100 # for demonstration only
+                iter = 100  # for demonstration only; increase for real analyses
                 )
-
 summary(fit)
 
 \donttest{
-# To extract the posterior parameter distribution
-# and centrality measures
+# --- Mixed data using per-variable type vector (bgms only) ---
+dat3 <- data[, 1:3]
+fit_vec <- easybgm(dat3,
+                    type = c("ordinal", "ordinal", "continuous"),
+                    iter = 100)
 
-fit <- easybgm(data, type = "continuous",
-                iter = 100, # for demonstration only
-                centrality = TRUE, save = TRUE)
+# --- Extract posterior samples and centrality ---
+fit_full <- easybgm(data, type = "continuous",
+                     iter = 100,
+                     centrality = TRUE, save = TRUE)
+
+# --- Using BDgraph for continuous data ---
+fit_bd <- easybgm(data, type = "continuous",
+                   package = "BDgraph",
+                   iter = 100)
+
+# --- Using BGGM for continuous data ---
+fit_bggm <- easybgm(data, type = "continuous",
+                     package = "BGGM",
+                     iter = 100)
+                   
 }
 }

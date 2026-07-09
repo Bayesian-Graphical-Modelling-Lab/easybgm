@@ -134,7 +134,7 @@ summary.easybgm <- function(object,
     
     ## ---- 2i. Create results data frame ----
     ## ----  Create results data frame with convergence (newer bgms)----
-    if("package_bgms" %in% class(object) && packageVersion("bgms") > "0.1.4.2"){
+    if("package_bgms" %in% class(object)){
       # if users want the BF uncertainty estimates
       if(BF_uncertainty){
         results <-
@@ -349,27 +349,32 @@ print.easybgm <- function(x, ...){
         "\n EDGE SPECIFIC OVERVIEW",
         "\n")
     print(x$parameters, quote = FALSE, right = TRUE, row.names=F)
+    fit_obj <- x$fit_object
     cat("\n Bayes factors larger than", x$evidence_thresh_strong, "were considered sufficient evidence.",
         "\n Bayes factors larger than", x$evidence_thresh_weak, "were considered weak evidence.",
         "\n Bayes factors were obtained using Bayesian model-averaging.",
         "\n ")
-    if("package_bgms" %in% class(x) && packageVersion("bgms") > "0.1.4.2" && isTRUE(x$BF_uncertainty)){
+    # --- Note about available parameter scales (bgms only) ---
+    if("package_bgms" %in% class(x) && isTRUE(x$BF_uncertainty)){
       cat(
-        "\n Convergence diagnostics: The 'Convergence Estimate' is the R-hat (Gelman-Rubin) statistic, which measures how well MCMC chains have",
-        "\n converged to the same target distribution for the edge weights. Values greater than about 1.01-1.05 are considered concerning,",
-        "\n indicating potential lack of convergence for the estimates of the pairwise interactions.",
-        "\n The 'BF Interval (MC)' is a 95% Monte Carlo confidence interval for the Bayes factor, obtained by first estimating the numerical standard",
-        "\n error of the log Bayes factor and then exponentiating a log-scale interval back to the BF scale. This interval reflects the numerical",
-        "\n Monte Carlo uncertainty of the Bayes factor; narrower intervals indicate a more stable and reliable BF estimate across repeated MCMC",
-        "\n runs. Note that when the posterior inclusion probability is exactly 1 or 0, the Bayes factor is infinite and the Monte Carlo interval",
-        "\n is not available.",
+        "\n Convergence diagnostics: The 'Convergence Estimate' is the R-hat (Gelman-Rubin) statistic,",
+        "\n which measures how well MCMC chains have converged to the same target distribution for the",
+        "\n edge weights. Values greater than about 1.01-1.05 are considered concerning, indicating",
+        "\n potential lack of convergence for the estimates of the pairwise interactions. ",
+        "\n The 'BF Interval (MC)' is a 95% Monte Carlo confidence interval for the Bayes factor,",
+        "\n obtained by first estimating the numerical standard error of the log Bayes factor",
+        "\n and then exponentiating a log-scale interval back to the BF scale. ",
+        "\n This interval reflects the numerical Monte Carlo uncertainty of the Bayes factor; narrower ",
+        "\n intervals indicate a more stable and reliable BF estimates across repeated MCMC runs. ",
+        "\n Note that when the posterior inclusion probability is exactly 1 or 0, the Bayes factor is",
+        "\n infinite and the Monte Carlo interval is not available.",
         "\n ---")
     }
-    if("package_bgms" %in% class(x) && packageVersion("bgms") > "0.1.4.2" && !isTRUE(x$BF_uncertainty)){
-      cat("\n Convergence indicates the R-hat (Gelman-Rubin) statistic measuring how well MCMC chains have converged to",
-          "\n the same target distribution. Values greater than about 1.01-1.05 are considered concerning, indicating",
-          "\n potential lack of convergence for the estimates of the pairwise interactions.",
-          "\n If you wish to also see the Monte Carlo uncertainty of the Bayes factors, please re-print the summary with BF_uncertainty = TRUE.",
+    if("package_bgms" %in% class(x) && !isTRUE(x$BF_uncertainty)){
+      cat("\n Convergence indicates the R-hat (Gelman-Rubin) statistic measuring how well MCMC chains",
+          "\n have converged to the same target distribution. Values greater than about 1.01-1.05 are",
+          "\n considered concerning, indicating potential lack of convergence for the estimates of",
+          "\n the pairwise interactions.",
           "\n ---")
     }
     cat("\n AGGREGATED EDGE OVERVIEW",
@@ -401,5 +406,6 @@ print.easybgm <- function(x, ...){
         "\n Number of possible structures:", x$possible_struc,
         "\n Posterior probability of most likely structure:", x$max_structure_prob,
         "\n---")
+
   }
 }
