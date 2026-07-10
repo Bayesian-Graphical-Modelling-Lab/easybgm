@@ -44,16 +44,26 @@ bgms.
 package: BGGM.
 }
 
-\strong{2. A character vector of length p} (per-variable specification,
-bgms only): Each element specifies the type of the corresponding column.
-Valid values are \code{"ordinal"}, \code{"blume-capel"}, and
-\code{"binary"}.
+\strong{2. A character vector of length p} (per-variable specification):
+Each element specifies the type of the corresponding column. Valid values
+are \code{"ordinal"}, \code{"blume-capel"}, and \code{"binary"}; note that
+\code{"continuous"} is \emph{not} supported for group comparison with
+\code{bgms}. For example:
+\code{type = c("ordinal", "ordinal", "blume-capel")}.
 
-For example: \code{type = c("ordinal", "ordinal", "blume-capel")}.}
+Per-variable vectors are fitted by \code{bgms} and require \code{bgms}
+version 0.2.0.0 or later.}
 
-\item{package}{The R-package used for fitting the comparison model.
-If not specified, \code{bgms} is used as the default for ordinal, binary,
-and blume-capel data and \code{BGGM} as default for continous and mixed data.}
+\item{package}{The R-package used for fitting the comparison model, either
+\code{"bgms"} or \code{"BGGM"}. If not specified, \code{bgms} is used for
+ordinal, binary, and blume-capel data, and \code{BGGM} for continuous and
+mixed data.
+
+\code{BGGM} fits only \code{"continuous"} and \code{"mixed"} data. If you
+request \code{BGGM} for a data type it cannot fit -- an ordinal, binary,
+or blume-capel \code{type}, or a per-variable type vector --
+\code{easybgm_compare} issues a warning and fits the model with
+\code{bgms} instead.}
 
 \item{not_cont}{A binary vector of length p, required when
 \code{type = "mixed"}. Each element indicates whether the corresponding

@@ -23,7 +23,7 @@ independent observations on p variables.}
 
 \item{type}{Specifies the type of data. There are two ways to use this argument:
 
-\strong{1. A single string}:
+\strong{1. A single string}, applied to every variable:
 \itemize{
 \item \code{"continuous"}: For continuous (Gaussian) data. Estimates a
 Gaussian Graphical Model (GGM).
@@ -34,38 +34,46 @@ Ordinal Markov Random Field (OMRF).
 reference category via the \code{baseline_category} argument.
 \item \code{"mixed"}: For data with both continuous and discrete
 variables. Requires the \code{not_cont} argument to indicate which
-variables are not continuous (see below). This value should only be specified when
-fitting a mixed model using \code{package = "BDgraph"} or \code{package = "BGGM"}.
-See below on how to specify mixed models using bgms.
+variables are not continuous.
 }
 
-\strong{2. A character vector of length p} (per-variable specification,
-\code{bgms} only from package version 0.2.0.0): Each element specifies the
-type of the corresponding column in \code{data}. Valid values are
-\code{"ordinal"}, \code{"continuous"},\code{"blume-capel"},
-and \code{"binary"}.
+\strong{2. A character vector of length p} (per-variable specification):
+Each element gives the type of the corresponding column of \code{data},
+drawn from \code{"ordinal"}, \code{"continuous"}, \code{"blume-capel"},
+and \code{"binary"}. For example,
+\code{type = c("ordinal", "ordinal", "continuous")} specifies that the
+first two columns are ordinal and the third is continuous.
 
-For example: \code{type = c("ordinal", "ordinal", "continuous")} specifies
-that the first two columns are ordinal and the third is continuous.
+Per-variable vectors are fitted by \code{bgms} and require \code{bgms}
+version 0.2.0.0 or later. They are the most flexible way to specify mixed
+data and make \code{not_cont} unnecessary.
 
-\emph{Note:} Per-variable type vectors are only supported with the
-\code{bgms} package.}
+Which values are legal depends on the fitting package rather than on the
+\code{bgms} version directly; see \strong{Data types and package support}
+in the Details section below.}
 
-\item{package}{The R-package used for fitting the network model. Optional;
-if not specified and \code{bgms} version < 0.2.0.0, \code{bgms} is used for
-the fit of binary, ordinal, and blume-capel data and \code{BGGM} for
-continuous and mixed data.
-if not specified and \code{bgms} version >= 0.2.0.0, \code{bgms} is used as
-the default for all data types.
+\item{package}{The R-package used for fitting the network model. Optional.
 Supported options:
 \itemize{
-\item \code{bgms} (Default): Supports the following data types: continuous,
-ordinal, binary, and blume-capel or a combination of the three.
-\item \code{BDgraph}: Supports continuous (fits a GGM), mixed (fits a
-GCGM). For continuous data, missing values are not
-allowed; use \code{na.omit()} on the data first.
-\item \code{"BGGM"}: Supports continuous and mixed data.
-}}
+\item \code{"bgms"}: Fits ordinal, binary, and blume-capel data, and --
+from \code{bgms} version 0.2.0.0 onwards -- continuous data and
+per-variable type vectors as well.
+\item \code{"BDgraph"}: Fits continuous data (a GGM) and mixed data (a
+GCGM). For continuous data, missing values are not allowed; use
+\code{na.omit()} on the data first.
+\item \code{"BGGM"}: Fits continuous and mixed data.
+}
+
+If \code{package} is not specified, \code{bgms} is used for all data types
+from \code{bgms} version 0.2.0.0 onwards. With \code{bgms} 0.1.6.3, which
+cannot fit continuous data, \code{bgms} is used for binary, ordinal, and
+blume-capel data and \code{BGGM} for continuous and mixed data.
+
+\code{BGGM} and \code{BDgraph} fit only \code{"continuous"} and
+\code{"mixed"} data. If you request either package for a data type it
+cannot fit -- an ordinal, binary, or blume-capel \code{type}, or a
+per-variable type vector -- \code{easybgm} issues a warning and fits the
+model with \code{bgms} instead.}
 
 \item{save}{Logical. Should the posterior samples be obtained
 (default = \code{FALSE})? If \code{TRUE}, the output includes a
@@ -96,12 +104,13 @@ is of type \code{"blume-capel"}. Baseline category used in
 Blume--Capel variables. Can be a single integer (applied to all) or a
 vector of length \code{p}.}
 
-\item{not_cont}{A binary vector of length p, required when
-\code{type = "mixed"} and a single string is used. Each element indicates
-whether the corresponding variable is not continuous
-(\code{1} = not continuous/ordinal, \code{0} = continuous). This is used to
-construct a per-variable type vector internally. Only neccesary when
-using \code{package = "BDgraph"} or \code{package = "BGGM"}.}
+\item{not_cont}{A binary vector of length p, required whenever
+\code{type = "mixed"}. Each element indicates whether the corresponding
+variable is not continuous (\code{1} = not continuous/ordinal,
+\code{0} = continuous). When the model is fitted with \code{bgms}, this is
+used to construct a per-variable type vector internally; \code{BGGM} and
+\code{BDgraph} use it directly. It is not needed when \code{type} is
+already given as a per-variable vector.}
 
 \item{...}{Additional arguments passed to the fitting functions of the
 underlying packages (e.g., prior specifications). See the
@@ -192,17 +201,24 @@ conditional (in)dependence relations between variables in a network.
 \details{
 \strong{Data types and package support}
 
-The table below summarizes which data types are supported by each backend
-package:
+Which values of \code{type} are legal depends on the package that fits the
+model. \code{BGGM} and \code{BDgraph} fit only continuous and mixed data;
+everything else is fitted by \code{bgms}. Because \code{bgms} 0.1.6.3 cannot
+fit continuous data, the \code{bgms} column is split by version:
 
-\tabular{lccc}{
-\strong{Data type}    \tab \strong{bgms} \tab \strong{BDgraph} \tab \strong{BGGM} \cr
-continuous             \tab Yes (default)  \tab Yes              \tab Yes           \cr
-ordinal                \tab Yes (default)  \tab Yes              \tab No            \cr
-binary                 \tab Yes (always)   \tab No               \tab No            \cr
-mixed                  \tab Yes (default)  \tab Yes              \tab Yes           \cr
-blume-capel            \tab Yes (default)  \tab No               \tab No            \cr
+\tabular{lcccc}{
+\strong{Data type} \tab \strong{bgms >= 0.2.0.0} \tab \strong{bgms 0.1.6.3} \tab \strong{BDgraph} \tab \strong{BGGM} \cr
+continuous           \tab Yes (default) \tab No             \tab Yes           \tab Yes \cr
+ordinal              \tab Yes (default) \tab Yes (default)  \tab No            \tab No  \cr
+binary               \tab Yes (default) \tab Yes (default)  \tab No            \tab No  \cr
+blume-capel          \tab Yes (default) \tab Yes (default)  \tab No            \tab No  \cr
+mixed                \tab Yes (default) \tab No             \tab Yes           \tab Yes (default) \cr
+per-variable vector  \tab Yes           \tab No             \tab No            \tab No  \cr
 }
+
+"Default" marks the package used when \code{package} is left unspecified.
+Requesting \code{BGGM} or \code{BDgraph} for a data type they cannot fit
+produces a warning and falls back to \code{bgms}.
 
 \strong{How \code{type} and \code{not_cont} relate}
 
@@ -210,11 +226,13 @@ There are two ways to specify mixed-type data:
 \enumerate{
 \item \strong{Using \code{type = "mixed"} with \code{not_cont}}: Set
 \code{type = "mixed"} and provide a binary vector \code{not_cont} of
-length p. Internally, this is translated to a per-variable type vector
-where \code{not_cont == 1} maps to \code{"ordinal"} and
-\code{not_cont == 0} maps to \code{"continuous"}.
-\item \strong{Using a per-variable type vector} (bgms only): Directly
-specify the type of each variable, e.g.,
+length p. When the model is fitted with \code{bgms}, this is translated
+internally to a per-variable type vector, where \code{not_cont == 1}
+maps to \code{"ordinal"} and \code{not_cont == 0} maps to
+\code{"continuous"}. \code{BGGM} and \code{BDgraph} use \code{not_cont}
+directly.
+\item \strong{Using a per-variable type vector} (\code{bgms} >= 0.2.0.0
+only): Directly specify the type of each variable, e.g.,
 \code{type = c("ordinal", "continuous", "ordinal")}. This is more
 flexible and does not require the \code{not_cont} argument.
 }
@@ -286,18 +304,20 @@ library(bgms)
 
 data <- na.omit(Wenchuan)[1:100, 1:5]
 
-# --- Continuous data (default: bgms) ---
+# --- Continuous data (fitted by bgms >= 0.2.0.0, otherwise by BGGM) ---
 fit <- easybgm(data, type = "continuous",
                 iter = 100  # for demonstration only; increase for real analyses
                 )
 summary(fit)
 
 \donttest{
-# --- Mixed data using per-variable type vector (bgms only) ---
-dat3 <- data[, 1:3]
-fit_vec <- easybgm(dat3,
-                    type = c("ordinal", "ordinal", "continuous"),
-                    iter = 100)
+# --- Mixed data using per-variable type vector (requires bgms >= 0.2.0.0) ---
+if (utils::packageVersion("bgms") >= "0.2.0.0") {
+  dat3 <- data[, 1:3]
+  fit_vec <- easybgm(dat3,
+                      type = c("ordinal", "ordinal", "continuous"),
+                      iter = 100)
+}
 
 # --- Extract posterior samples and centrality ---
 fit_full <- easybgm(data, type = "continuous",

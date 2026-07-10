@@ -259,8 +259,38 @@ test_that("easybgm_compare errors for continuous/mixed without BGGM", {
   dat <- na.omit(Wenchuan)[1:20, 1:5]
   group_dat <- list(dat[1:10, ], dat[11:20, ])
   expect_error(
-    easybgm_compare(group_dat, type = "continuous", package = "bgms"),
-    "not of type continuous"
+    suppressWarnings(
+      easybgm_compare(group_dat, type = "continuous", package = "bgms")
+    ),
+    "Invalid variable types detected"
+  )
+  expect_error(
+    suppressWarnings(
+      easybgm_compare(group_dat, type = "mixed", package = "bgms")
+    ),
+    "Invalid variable types detected"
+  )
+})
+
+
+test_that("easybgm_compare accepts a per-variable type vector", {
+  skip_if(packageVersion("bgms") <= "0.1.6.3")
+  data("Wenchuan", package = "bgms")
+  dat <- na.omit(Wenchuan)[1:30, 1:3]
+  grp <- rep(1:2, length.out = nrow(dat))
+  fit <- suppressWarnings(
+    easybgm_compare(dat, type = rep("ordinal", 3), group_indicator = grp,
+                    iter = 50, progress = FALSE)
+  )
+  expect_s3_class(fit, "package_bgms_compare")
+
+  # a vector whose length does not match the number of columns is rejected
+  expect_error(
+    suppressWarnings(
+      easybgm_compare(dat, type = rep("ordinal", 2), group_indicator = grp,
+                      iter = 50, progress = FALSE)
+    ),
+    "must equal"
   )
 })
 
