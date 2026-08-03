@@ -409,7 +409,6 @@ easybgm <- function(data, type, package = NULL,
       if(package == "BDgraph") package <- "package_bdgraph"
       if(package == "BGGM") package <- "package_bggm"
       if(package == "bgms") package <- "package_bgms"
-      if(type == "binary") package <- "package_bgms"
     }
   }
   
