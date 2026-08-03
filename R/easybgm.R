@@ -206,7 +206,6 @@ easybgm <- function(data, type, package = NULL, not_cont = NULL, iter = 1e3, sav
     if(package == "BDgraph") package <- "package_bdgraph"
     if(package == "BGGM") package <- "package_bggm"
     if(package == "bgms") package <- "package_bgms"
-    if(type == "binary") package <- "package_bgms"
   }
   
   # change the default number of iterations depending on the underlying package
