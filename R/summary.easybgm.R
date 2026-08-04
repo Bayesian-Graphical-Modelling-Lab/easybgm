@@ -408,4 +408,19 @@ print.easybgm <- function(x, ...){
         "\n---")
 
   }
+
+  # --- Note about the scale of the reported edge weights ---
+  # bgms reports pairwise parameters on the association (coupling) scale, which
+  # is not the partial correlation scale that BGGM and BDgraph report. The two
+  # are not comparable by eye, so say so rather than leave the reader to assume.
+  if("package_bgms" %in% class(x) &&
+     isTRUE(x$model %in% c("continuous", "mixed"))){
+    cat("\n Note: for 'bgms', the reported edge weights are pairwise association",
+        "\n parameters (the coupling entering each conditional distribution), not",
+        "\n partial correlations. They are therefore not on the same scale as the",
+        "\n edge weights reported for 'BGGM' and 'BDgraph'. Partial correlations",
+        "\n are available in the fit object as $partial_correlations, and the",
+        "\n precision matrix as $precision_matrix.",
+        "\n---\n")
+  }
 }

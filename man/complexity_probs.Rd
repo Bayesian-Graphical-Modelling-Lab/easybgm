@@ -26,7 +26,8 @@ library(bgms)
 
 data <- na.omit(Wenchuan)
 fit <- easybgm(data, type = "ordinal", save = TRUE, edge_selection = TRUE,
-                iter = 100  # for demonstration only
+                iter = 100,   # for demonstration only
+                warmup = 300  # bgms defaults to 2000
                 )
 
 plot_complexity_probabilities(fit)

@@ -109,7 +109,13 @@
 #' \strong{Always returned:}
 #' \itemize{
 #'   \item \code{parameters}: A p x p matrix of posterior mean partial
-#'     association estimates.
+#'     association estimates. Note that the scale differs between fitting
+#'     packages: \code{BGGM} and \code{BDgraph} report partial correlations,
+#'     whereas \code{bgms} reports the pairwise association parameter (the
+#'     coupling that enters each conditional distribution). For \code{bgms}
+#'     fits of continuous or mixed data the partial correlations are returned
+#'     separately in \code{partial_correlations} (see below). Edge weights from
+#'     different packages are therefore not directly comparable.
 #'   \item \code{inc_probs}: A p x p matrix of posterior inclusion
 #'     probabilities.
 #'   \item \code{inc_BF}: A p x p matrix of posterior inclusion Bayes factors.
@@ -137,7 +143,12 @@
 #'     statistic for each edge weight parameter. Values close to 1 indicate good
 #'     convergence.
 #'   \item \code{MCSE_BF}: A matrix with the 95 percent Monte Carlo confidence
-#'     interval for each inclusion Bayes factor.
+#'     interval for each inclusion Bayes factor, derived from the Monte Carlo
+#'     standard error of the Rao-Blackwellized inclusion probability. Entries
+#'     are \code{NA} where the interval is not defined, which happens when the
+#'     posterior inclusion probability is numerically 0 or 1 and the Bayes
+#'     factor is therefore 0 or infinite. This is routine for decisive edges
+#'     rather than a sign of a problem.
 #' }
 #'
 #' \strong{Returned when edge_prior = "Stochastic-Block" (bgms only):}
@@ -231,11 +242,14 @@
 #' objects from the \code{bgms} package. Pass them through \code{...}:
 #' \itemize{
 #'   \item \code{interaction_prior}: A parameter prior on pairwise interactions.
-#'     Use \code{\link[bgms]{cauchy_prior}(scale)} (default
-#'     \code{cauchy_prior(scale = 1)}), \code{\link[bgms]{normal_prior}(scale)},
+#'     Use \code{\link[bgms]{normal_prior}(scale)} (default
+#'     \code{normal_prior(scale = 1)}), \code{\link[bgms]{cauchy_prior}(scale)},
 #'     or \code{\link[bgms]{beta_prime_prior}(alpha, beta)}.
-#'     For example, a cauchy prior with scale 1 would be specified with adding the 
-#'     argument \code{interaction_prior = cauchy_prior(1)} to the easybgm call. 
+#'     For example, a cauchy prior with scale 1 would be specified with adding the
+#'     argument \code{interaction_prior = cauchy_prior(1)} to the easybgm call.
+#'     Note that the default is a Normal slab, which has considerably lighter
+#'     tails than the Cauchy used by earlier versions of \code{bgms}, and so
+#'     constrains weakly identified edges more tightly.
 #'   \item \code{threshold_prior}: A parameter prior on threshold (main effect)
 #'     parameters. Use \code{\link[bgms]{beta_prime_prior}(alpha, beta)}
 #'     (default \code{beta_prime_prior(0.5, 0.5)}),
@@ -247,8 +261,12 @@
 #'     mixed MRF models. Default \code{normal_prior(scale = 1)}.
 #'   \item \code{precision_scale_prior}: A prior on the diagonal entries of the
 #'     precision matrix (GGM and mixed MRF). Use
-#'     \code{\link[bgms]{gamma_prior}(shape, rate)} (default) or
-#'     \code{\link[bgms]{exponential_prior}(rate)}.
+#'     \code{\link[bgms]{exponential_prior}(rate)} (default
+#'     \code{exponential_prior(eta = 1)}) or
+#'     \code{\link[bgms]{gamma_prior}(shape, rate)}.
+#'   \item \code{precision_graph_prior}: How the graph prior is applied to the
+#'     precision matrix (GGM and mixed MRF). Either \code{"hierarchical"} (the
+#'     default), which tracks the normalizing constant, or \code{"joint"}.
 #'   \item \code{edge_prior}: An indicator prior on edge inclusion. Use
 #'     \code{\link[bgms]{bernoulli_prior}(inclusion_probability)} (default
 #'     \code{bernoulli_prior(0.5)}; \code{inclusion_probability} can also be a
@@ -256,9 +274,27 @@
 #'     \code{\link[bgms]{beta_bernoulli_prior}(alpha, beta)}, or
 #'     \code{\link[bgms]{sbm_prior}(alpha, beta, alpha_between, beta_between, dirichlet_alpha, lambda)}
 #'     for the Stochastic Block Model prior.
-#'     For example, a bernoulli prior with prior probabilit of 0.5 would be 
-#'     specified with adding the argument \code{edge_prior = bernoulli_prior(0.5)} 
+#'     For example, a bernoulli prior with prior probabilit of 0.5 would be
+#'     specified with adding the argument \code{edge_prior = bernoulli_prior(0.5)}
 #'     to the easybgm call.
+#' }
+#'
+#' For backwards compatibility, the legacy flat arguments below are still
+#' accepted via \code{...} and are translated into the constructors above, so
+#' they do not raise \code{bgms} deprecation warnings:
+#' \itemize{
+#'   \item \code{interaction_scale}, \code{pairwise_scale}: Scale of a Cauchy
+#'     prior on the pairwise interactions, translated to
+#'     \code{cauchy_prior(scale)}. Note that this is a Cauchy, whereas the
+#'     current default is \code{normal_prior(scale = 1)}.
+#'   \item \code{threshold_alpha}, \code{threshold_beta} (or \code{main_alpha},
+#'     \code{main_beta}): Shape parameters translated to
+#'     \code{beta_prime_prior(alpha, beta)}.
+#'   \item \code{edge_prior}: Character string \code{"Bernoulli"},
+#'     \code{"Beta-Bernoulli"}, or \code{"Stochastic-Block"}, combined with the
+#'     flat hyperparameters \code{inclusion_probability},
+#'     \code{beta_bernoulli_alpha}, \code{beta_bernoulli_beta},
+#'     \code{dirichlet_alpha}, and \code{lambda}.
 #' }
 #'
 #'
@@ -297,7 +333,8 @@
 #'
 #' # --- Continuous data (fitted by bgms >= 0.2.0.0, otherwise by BGGM) ---
 #' fit <- easybgm(data, type = "continuous",
-#'                 iter = 100  # for demonstration only; increase for real analyses
+#'                 iter = 100,   # for demonstration only; increase for real analyses
+#'                 warmup = 300  # bgms defaults to 2000
 #'                 )
 #' summary(fit)
 #'
@@ -307,12 +344,12 @@
 #'   dat3 <- data[, 1:3]
 #'   fit_vec <- easybgm(dat3,
 #'                       type = c("ordinal", "ordinal", "continuous"),
-#'                       iter = 100)
+#'                       iter = 100, warmup = 300)
 #' }
 #'
 #' # --- Extract posterior samples and centrality ---
 #' fit_full <- easybgm(data, type = "continuous",
-#'                      iter = 100,
+#'                      iter = 100, warmup = 300,
 #'                      centrality = TRUE, save = TRUE)
 #'
 #' # --- Using BDgraph for continuous data ---

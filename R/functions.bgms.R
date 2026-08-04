@@ -180,11 +180,6 @@ bgm_extract.package_bgms <- function(fit, type, save, iter,
     stop("Unknown edge prior type in args$edge_prior[1].")
   }
   
-  if(packageVersion("bgms") > "0.1.6.3"){
-    
-  } else if(packageVersion("bgms") < "0.2.0.0"){
-    
-  }
   # --- Main extraction ---
   if (args$save) {
     if(packageVersion("bgms") > "0.1.6.3"){
@@ -288,6 +283,8 @@ bgm_extract.package_bgms <- function(fit, type, save, iter,
       } else {
         stop("Unknown edge prior type.")
       }
+      # median probability model; inc_probs has a zero diagonal, so this does too
+      bgms_res$structure <- 1 * (bgms_res$inc_probs > 0.5)
       gammas <- extract_indicators(fit)
       structures <- apply(gammas, 1, paste0, collapse = "")
       table_structures <- as.data.frame(table(structures))
@@ -301,19 +298,53 @@ bgm_extract.package_bgms <- function(fit, type, save, iter,
   }
   # --- Optionally compute centrality ---
   if (centrality) {
-    bgms_res$centrality <- centrality(bgms_res)
+    # bgms stores pairwise interactions in lower-triangle column order
+    bgms_res$centrality <- centrality(bgms_res, bycolumn = FALSE)
   }
   
   # --- Compute convergence diagnostics ---
   if (args$edge_selection == TRUE) {
     # extract the Rhat
     bgms_res$convergence_parameter <- extract_rhat(fit)$pairwise
-    # calculate MC uncertainty
-    bgms_res$MCSE_BF <- BF_MCSE(gamma_mat = extract_indicators(fit),
-                                BF_vec = bgms_res$inc_BF[lower.tri(bgms_res$inc_BF)],
-                                ess = extract_ess(fit)$indicator,
-                                return = "ci",
-                                smooth_bf = FALSE)
+    # Calculate the MC uncertainty of the inclusion BF.
+    #
+    # inc_probs above is bgms's Rao-Blackwellized inclusion probability, so the
+    # Monte Carlo error has to come from that same estimator. bgms reports it in
+    # posterior_summary_indicator$mcse, already on the RB scale and in the
+    # lower-triangle order that inc_BF[lower.tri()] uses. Passing the raw
+    # indicator average to BF_MCSE() instead (as easybgm did before) combined a
+    # binomial variance belonging to the raw average with an effective sample
+    # size computed for the smoother RB chain, which inflated the interval by up
+    # to ~1.4x. BF_MCSE() is kept for the BDgraph path and for older bgms.
+    bf_vec <- bgms_res$inc_BF[lower.tri(bgms_res$inc_BF)]
+    ind_summary <- tryCatch(fit$posterior_summary_indicator,
+                            error = function(e) NULL)
+    mcse_rb <- ind_summary$mcse
+
+    if (!is.null(mcse_rb) && length(mcse_rb) == length(bf_vec)) {
+      p_rb <- bgms_res$inc_probs[lower.tri(bgms_res$inc_probs)]
+      # delta method onto the log-BF scale: se(logBF) = se(p) / (p * (1 - p))
+      se_log <- mcse_rb / (p_rb * (1 - p_rb))
+      se_log[!is.finite(se_log)] <- NA_real_
+      # bgms reports NA where the RB draws are constant to double precision,
+      # which is routine on decisive edges; those cells stay NA here.
+      z <- stats::qnorm(1 - (1 - 0.95) / 2)
+      valid <- is.finite(bf_vec) & bf_vec > 0 & !is.na(se_log)
+      bgms_res$MCSE_BF <- data.frame(
+        lower = ifelse(valid, exp(log(bf_vec) - z * se_log), NA_real_),
+        upper = ifelse(valid, exp(log(bf_vec) + z * se_log), NA_real_)
+      )
+      if (!is.null(rownames(ind_summary))) {
+        rownames(bgms_res$MCSE_BF) <- rownames(ind_summary)
+      }
+    } else {
+      # bgms < 0.2.0.0 does not report an RB Monte Carlo error
+      bgms_res$MCSE_BF <- BF_MCSE(gamma_mat = extract_indicators(fit),
+                                  BF_vec = bf_vec,
+                                  ess = extract_ess(fit)$indicator,
+                                  return = "ci",
+                                  smooth_bf = FALSE)
+    }
   }
   
   if(packageVersion("bgms") > "0.1.6.3"){

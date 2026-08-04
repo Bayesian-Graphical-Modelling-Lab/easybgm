@@ -148,8 +148,8 @@
 #' objects:
 #' \itemize{
 #'   \item \code{interaction_prior}: Prior on the baseline pairwise
-#'     interactions. Use \code{\link[bgms]{cauchy_prior}(scale)} (default
-#'     \code{cauchy_prior(scale = 1)}), \code{\link[bgms]{normal_prior}(scale)},
+#'     interactions. Use \code{\link[bgms]{normal_prior}(scale)} (default
+#'     \code{normal_prior(scale = 1)}), \code{\link[bgms]{cauchy_prior}(scale)},
 #'     or \code{\link[bgms]{beta_prime_prior}(alpha, beta)}.
 #'   \item \code{threshold_prior}: Prior on threshold parameters. Default
 #'     \code{beta_prime_prior(0.5, 0.5)}.
@@ -157,8 +157,15 @@
 #'     Use \code{\link[bgms]{bernoulli_prior}(inclusion_probability)} (default
 #'     \code{bernoulli_prior(0.5)}) or
 #'     \code{\link[bgms]{beta_bernoulli_prior}(alpha, beta)}.
+#'   \item \code{difference_family}: The family of the prior on the magnitude of
+#'     the pairwise differences, either \code{"Normal"} (the default) or
+#'     \code{"Cauchy"}. Versions of \code{bgms} before 0.2.0.0 had no such
+#'     argument and always used a Cauchy, so comparison Bayes factors obtained
+#'     with those versions correspond to \code{difference_family = "Cauchy"}.
 #'   \item \code{difference_scale}: Scale of the prior on the magnitude of
-#'     pairwise differences. Default 1.
+#'     pairwise differences, on the family set by \code{difference_family}.
+#'     Default 1. The differences are the parameters the comparison Bayes
+#'     factors are about, so this prior bears directly on those Bayes factors.
 #'   \item \code{difference_selection}: Logical, whether to perform Bayesian
 #'     selection on group differences. Default \code{TRUE}.
 #' }
@@ -199,7 +206,8 @@
 #'
 #' fit <- easybgm_compare(list(group1, group2),
 #'                 type = "binary", save = TRUE,
-#'                 iter = 50  # for demonstration only
+#'                 iter = 50,    # for demonstration only
+#'                 warmup = 300   # bgms defaults to 2000
 #'                 )
 #' summary(fit)
 #'
@@ -207,7 +215,8 @@
 #' fit_multi <- easybgm_compare(data[1:200, 1:5],
 #'                 group_indicator = rep(c(1, 2, 3, 4), each = 50),
 #'                 type = "binary", save = TRUE,
-#'                 iter = 100  # for demonstration only
+#'                 iter = 100,   # for demonstration only
+#'                 warmup = 300  # bgms defaults to 2000
 #'                 )
 #' summary(fit_multi)
 #' }
