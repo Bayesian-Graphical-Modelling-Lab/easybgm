@@ -45,10 +45,11 @@
 #'     \item \code{"bgms"}: Fits ordinal, binary, and blume-capel data, and --
 #'       from \code{bgms} version 0.2.0.0 onwards -- continuous data and
 #'       per-variable type vectors as well.
-#'     \item \code{"BDgraph"}: Fits continuous data (a GGM) and mixed data (a
-#'       GCGM). For continuous data, missing values are not allowed; use
-#'       \code{na.omit()} on the data first.
-#'     \item \code{"BGGM"}: Fits continuous and mixed data.
+#'     \item \code{"BDgraph"}: Fits continuous data (a GGM), mixed and ordinal
+#'       data (a GCGM), and binary data (a discrete graphical model). For
+#'       continuous data, missing values are not allowed; use \code{na.omit()}
+#'       on the data first.
+#'     \item \code{"BGGM"}: Fits continuous, mixed, ordinal, and binary data.
 #'   }
 #'
 #'   If \code{package} is not specified, \code{bgms} is used for all data types
@@ -56,11 +57,11 @@
 #'   cannot fit continuous data, \code{bgms} is used for binary, ordinal, and
 #'   blume-capel data and \code{BGGM} for continuous and mixed data.
 #'
-#'   \code{BGGM} and \code{BDgraph} fit only \code{"continuous"} and
-#'   \code{"mixed"} data. If you request either package for a data type it
-#'   cannot fit -- an ordinal, binary, or blume-capel \code{type}, or a
-#'   per-variable type vector -- \code{easybgm} issues a warning and fits the
-#'   model with \code{bgms} instead.
+#'   An explicit \code{package} is honoured for every data type that package
+#'   supports. Neither \code{BGGM} nor \code{BDgraph} implements the Blume-Capel
+#'   model or accepts a per-variable type vector, so requesting either package
+#'   for those produces a warning and \code{easybgm} fits the model with
+#'   \code{bgms} instead.
 #'
 #' @param iter Number of iterations for the sampler. The default depends on the
 #'   package:
@@ -196,23 +197,26 @@
 #' \strong{Data types and package support}
 #'
 #' Which values of \code{type} are legal depends on the package that fits the
-#' model. \code{BGGM} and \code{BDgraph} fit only continuous and mixed data;
-#' everything else is fitted by \code{bgms}. Because \code{bgms} 0.1.6.3 cannot
-#' fit continuous data, the \code{bgms} column is split by version:
+#' model. \code{BGGM} and \code{BDgraph} fit continuous, mixed, ordinal and
+#' binary data; the Blume-Capel model and per-variable \code{type} vectors are
+#' fitted only by \code{bgms}. Because \code{bgms} 0.1.6.3 cannot fit
+#' continuous data, the \code{bgms} column is split by version:
 #'
 #' \tabular{lcccc}{
 #'   \strong{Data type} \tab \strong{bgms >= 0.2.0.0} \tab \strong{bgms 0.1.6.3} \tab \strong{BDgraph} \tab \strong{BGGM} \cr
 #'   continuous           \tab Yes (default) \tab No             \tab Yes           \tab Yes \cr
-#'   ordinal              \tab Yes (default) \tab Yes (default)  \tab No            \tab No  \cr
-#'   binary               \tab Yes (default) \tab Yes (default)  \tab No            \tab No  \cr
+#'   ordinal              \tab Yes (default) \tab Yes (default)  \tab Yes           \tab Yes \cr
+#'   binary               \tab Yes (default) \tab Yes (default)  \tab Yes           \tab Yes \cr
 #'   blume-capel          \tab Yes (default) \tab Yes (default)  \tab No            \tab No  \cr
-#'   mixed                \tab Yes (default) \tab No             \tab Yes           \tab Yes (default) \cr
+#'   mixed                \tab Yes (default) \tab No             \tab Yes           \tab Yes \cr
 #'   per-variable vector  \tab Yes           \tab No             \tab No            \tab No  \cr
 #' }
 #'
 #' "Default" marks the package used when \code{package} is left unspecified.
-#' Requesting \code{BGGM} or \code{BDgraph} for a data type they cannot fit
-#' produces a warning and falls back to \code{bgms}.
+#' An explicit \code{package} is honoured for every data type those packages
+#' support. Requesting \code{BGGM} or \code{BDgraph} for the Blume-Capel model
+#' or for a per-variable \code{type} vector produces a warning and falls back to
+#' \code{bgms}.
 #'
 #' \strong{How \code{type} and \code{not_cont} relate}
 #'
@@ -417,21 +421,22 @@ easybgm <- function(data, type, package = NULL,
                            "Valid options are 'bgms', 'BGGM', and 'BDgraph'.",
                            call. = FALSE))
 
-    # BGGM and BDgraph only fit 'continuous' and 'mixed' data. Anything else --
-    # a per-variable 'type' vector, Blume-Capel, ordinal or binary data -- can
-    # only be fitted by bgms, so it overrides an explicit package choice. Warn
-    # rather than switching silently.
+    # BGGM and BDgraph fit continuous, mixed, ordinal and binary data, so an
+    # explicit package choice is honoured for those. Neither implements the
+    # Blume-Capel model, and neither accepts a per-variable 'type' vector;
+    # those two are bgms-only and override the choice. Warn rather than
+    # switching silently.
     if(package != "package_bgms"){
       override_reason <- if(is_vector_type){
         "a per-variable 'type' vector"
-      } else if(!type %in% c("continuous", "mixed")){
-        paste0("type = '", type, "'")
+      } else if(type == "blume-capel"){
+        "type = 'blume-capel'"
       } else NULL
 
       if(!is.null(override_reason)){
-        warning("BGGM and BDgraph can only fit 'continuous' or 'mixed' data, ",
-                "so they cannot fit ", override_reason, "; the 'package' ",
-                "argument was overridden and bgms will be used instead.",
+        warning("BGGM and BDgraph cannot fit ", override_reason, "; the ",
+                "'package' argument was overridden and bgms will be used ",
+                "instead.",
                 call. = FALSE)
         package <- "package_bgms"
       }
@@ -481,12 +486,21 @@ easybgm <- function(data, type, package = NULL,
     # Map "binary" to "ordinal" internally
     type[type == "binary"] <- "ordinal"
   } else {
-    # BGGM and BDgraph only fit a single 'continuous' or 'mixed' type. Any other
-    # specification was redirected to bgms above, so this is a safety net.
-    if(is_vector_type || !type %in% c("continuous", "mixed")){
+    # Neither BGGM nor BDgraph implements the Blume-Capel model or accepts a
+    # per-variable 'type' vector. Both were redirected to bgms above, so this
+    # is a safety net.
+    if(is_vector_type || type == "blume-capel"){
       stop(if(package == "package_bggm") "BGGM" else "BDgraph",
-           " can only fit 'continuous' or 'mixed' data. ",
-           "Please use package = 'bgms' for other data types.",
+           " cannot fit ",
+           if(is_vector_type) "a per-variable 'type' vector" else "'blume-capel' data",
+           ". Please use package = 'bgms' for these data types.",
+           call. = FALSE)
+    }
+    bggm_bdgraph_types <- c("continuous", "mixed", "ordinal", "binary")
+    if(!type %in% bggm_bdgraph_types){
+      stop("Unrecognized 'type': '", type, "'. ",
+           if(package == "package_bggm") "BGGM" else "BDgraph",
+           " fits: ", paste(bggm_bdgraph_types, collapse = ", "), ".",
            call. = FALSE)
     }
     if(type == "mixed" && is.null(not_cont)){

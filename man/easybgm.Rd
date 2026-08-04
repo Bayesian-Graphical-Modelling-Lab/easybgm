@@ -58,10 +58,11 @@ Supported options:
 \item \code{"bgms"}: Fits ordinal, binary, and blume-capel data, and --
 from \code{bgms} version 0.2.0.0 onwards -- continuous data and
 per-variable type vectors as well.
-\item \code{"BDgraph"}: Fits continuous data (a GGM) and mixed data (a
-GCGM). For continuous data, missing values are not allowed; use
-\code{na.omit()} on the data first.
-\item \code{"BGGM"}: Fits continuous and mixed data.
+\item \code{"BDgraph"}: Fits continuous data (a GGM), mixed and ordinal
+data (a GCGM), and binary data (a discrete graphical model). For
+continuous data, missing values are not allowed; use \code{na.omit()}
+on the data first.
+\item \code{"BGGM"}: Fits continuous, mixed, ordinal, and binary data.
 }
 
 If \code{package} is not specified, \code{bgms} is used for all data types
@@ -69,11 +70,11 @@ from \code{bgms} version 0.2.0.0 onwards. With \code{bgms} 0.1.6.3, which
 cannot fit continuous data, \code{bgms} is used for binary, ordinal, and
 blume-capel data and \code{BGGM} for continuous and mixed data.
 
-\code{BGGM} and \code{BDgraph} fit only \code{"continuous"} and
-\code{"mixed"} data. If you request either package for a data type it
-cannot fit -- an ordinal, binary, or blume-capel \code{type}, or a
-per-variable type vector -- \code{easybgm} issues a warning and fits the
-model with \code{bgms} instead.}
+An explicit \code{package} is honoured for every data type that package
+supports. Neither \code{BGGM} nor \code{BDgraph} implements the Blume-Capel
+model or accepts a per-variable type vector, so requesting either package
+for those produces a warning and \code{easybgm} fits the model with
+\code{bgms} instead.}
 
 \item{save}{Logical. Should the posterior samples be obtained
 (default = \code{FALSE})? If \code{TRUE}, the output includes a
@@ -213,23 +214,26 @@ conditional (in)dependence relations between variables in a network.
 \strong{Data types and package support}
 
 Which values of \code{type} are legal depends on the package that fits the
-model. \code{BGGM} and \code{BDgraph} fit only continuous and mixed data;
-everything else is fitted by \code{bgms}. Because \code{bgms} 0.1.6.3 cannot
-fit continuous data, the \code{bgms} column is split by version:
+model. \code{BGGM} and \code{BDgraph} fit continuous, mixed, ordinal and
+binary data; the Blume-Capel model and per-variable \code{type} vectors are
+fitted only by \code{bgms}. Because \code{bgms} 0.1.6.3 cannot fit
+continuous data, the \code{bgms} column is split by version:
 
 \tabular{lcccc}{
 \strong{Data type} \tab \strong{bgms >= 0.2.0.0} \tab \strong{bgms 0.1.6.3} \tab \strong{BDgraph} \tab \strong{BGGM} \cr
 continuous           \tab Yes (default) \tab No             \tab Yes           \tab Yes \cr
-ordinal              \tab Yes (default) \tab Yes (default)  \tab No            \tab No  \cr
-binary               \tab Yes (default) \tab Yes (default)  \tab No            \tab No  \cr
+ordinal              \tab Yes (default) \tab Yes (default)  \tab Yes           \tab Yes \cr
+binary               \tab Yes (default) \tab Yes (default)  \tab Yes           \tab Yes \cr
 blume-capel          \tab Yes (default) \tab Yes (default)  \tab No            \tab No  \cr
-mixed                \tab Yes (default) \tab No             \tab Yes           \tab Yes (default) \cr
+mixed                \tab Yes (default) \tab No             \tab Yes           \tab Yes \cr
 per-variable vector  \tab Yes           \tab No             \tab No            \tab No  \cr
 }
 
 "Default" marks the package used when \code{package} is left unspecified.
-Requesting \code{BGGM} or \code{BDgraph} for a data type they cannot fit
-produces a warning and falls back to \code{bgms}.
+An explicit \code{package} is honoured for every data type those packages
+support. Requesting \code{BGGM} or \code{BDgraph} for the Blume-Capel model
+or for a per-variable \code{type} vector produces a warning and falls back to
+\code{bgms}.
 
 \strong{How \code{type} and \code{not_cont} relate}
 
