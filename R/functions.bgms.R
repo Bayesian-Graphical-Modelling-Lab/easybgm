@@ -7,7 +7,7 @@ bgm_fit.package_bgms <- function(fit, type, data, iter, save,
                                  baseline_category, 
                                  ...){
   
-  if(packageVersion("bgms") > "0.1.6.3"){
+  if(packageVersion("bgms") >= "0.2.0.0"){
     # Store original easybgm type before mapping
     original_type <- type
     
@@ -36,7 +36,7 @@ bgm_fit.package_bgms <- function(fit, type, data, iter, save,
              bgm_args
       )
     )
-  } else if(packageVersion("bgms") < "0.2.0.0"){
+  } else {
     if(type == "binary") {
       type <- "ordinal"
     }
@@ -70,7 +70,7 @@ bgm_fit.package_bgms <- function(fit, type, data, iter, save,
 bgm_extract.package_bgms <- function(fit, type, save, iter, 
                                      not_cont, data, centrality, ...){
   
-  if(packageVersion("bgms") > "0.1.6.3"){
+  if(packageVersion("bgms") >= "0.2.0.0"){
     # --- Ensure proper bgms object and variable names ---
     # Determine display-friendly model label
     if(length(type) > 1) {
@@ -78,7 +78,7 @@ bgm_extract.package_bgms <- function(fit, type, save, iter,
     } else {
       model_label <- type
     }
-  } else if(packageVersion("bgms") < "0.2.0.0"){
+  } else {
     model_label <- type
   }
   
@@ -182,17 +182,17 @@ bgm_extract.package_bgms <- function(fit, type, save, iter,
   
   # --- Main extraction ---
   if (args$save) {
-    if(packageVersion("bgms") > "0.1.6.3"){
+    if(packageVersion("bgms") >= "0.2.0.0"){
       p <- args$num_variables
-    } else if(packageVersion("bgms") < "0.2.0.0"){
+    } else {
       p <- args$no_variables
     }
     pars <- extract_pairwise_interactions(fit)
     bgms_res$parameters <- vector2matrix(colMeans(pars), p = p)
     bgms_res$samples_posterior <- extract_pairwise_interactions(fit)
-    if(packageVersion("bgms") > "0.1.6.3"){
+    if(packageVersion("bgms") >= "0.2.0.0"){
       bgms_res$thresholds <- extract_main_effects(fit)
-    } else if(packageVersion("bgms") < "0.2.0.0"){
+    } else {
       bgms_res$thresholds <- extract_category_thresholds(fit)
     }
     rownames(bgms_res$parameters) <- colnames(bgms_res$parameters) <- varnames
@@ -238,16 +238,16 @@ bgm_extract.package_bgms <- function(fit, type, save, iter,
       bgms_res$sample_graph <- as.character(table_structures[, 1])
     }
   } else {
-    if(packageVersion("bgms") > "0.1.6.3"){
+    if(packageVersion("bgms") >= "0.2.0.0"){
       p <- args$num_variables
-    } else if(packageVersion("bgms") < "0.2.0.0"){
+    } else {
       p <- args$no_variables
     }
     pars <- extract_pairwise_interactions(fit)
     bgms_res$parameters <- vector2matrix(colMeans(pars), p = p)
-    if(packageVersion("bgms") > "0.1.6.3"){
+    if(packageVersion("bgms") >= "0.2.0.0"){
       bgms_res$thresholds <- extract_main_effects(fit)
-    } else if(packageVersion("bgms") < "0.2.0.0"){
+    } else {
       bgms_res$thresholds <- extract_category_thresholds(fit)
     }
     rownames(bgms_res$parameters) <- colnames(bgms_res$parameters) <- varnames
@@ -347,7 +347,7 @@ bgm_extract.package_bgms <- function(fit, type, save, iter,
     }
   }
   
-  if(packageVersion("bgms") > "0.1.6.3"){
+  if(packageVersion("bgms") >= "0.2.0.0"){
     # --- Extract interpretable parameter scales ---
     # These return NULL when the model type doesn't support them.
     # tryCatch guards against edge cases (e.g., mixed models with only
@@ -358,6 +358,21 @@ bgm_extract.package_bgms <- function(fit, type, save, iter,
       extract_precision(fit), error = function(e) NULL)
     bgms_res$log_odds <- tryCatch(
       extract_log_odds(fit), error = function(e) NULL)
+
+    # --- Blume-Capel main effects ---
+    # The linear and quadratic effects of a Blume-Capel variable are of
+    # substantive interest rather than nuisance parameters, so they get their
+    # own table. bgms names them "cat (1)" and "cat (2)" in the main-effect
+    # matrix, the same headers it uses for genuine category thresholds, so
+    # relabel what is stored in $thresholds as well.
+    bc_names <- bc_variable_names(args, varnames)
+    if(length(bc_names) > 0){
+      bgms_res$thresholds <- label_bc_thresholds(bgms_res$thresholds, bc_names)
+      bc <- tryCatch(extract_blume_capel(fit, varnames, args, save = save),
+                     error = function(e) NULL)
+      bgms_res$blume_capel_parameters <- bc$table
+      if(save) bgms_res$samples_blume_capel <- bc$samples
+    }
   }
   
   # --- Finalize output ---

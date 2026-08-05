@@ -518,3 +518,134 @@ BF_MCSE <- function(gamma_mat,
     return(ci_df)
   }
 }
+
+# --------------------------------------------------------------------------------------------------
+# Blume-Capel main effects (bgms >= 0.2.0.0)
+# --------------------------------------------------------------------------------------------------
+# A Blume-Capel variable has two main-effect parameters rather than one
+# threshold per category: the threshold for category x of a variable with
+# baseline b is mu(x) = linear * x + quadratic * (x - b)^2. bgms labels the
+# columns of its main-effect matrix "cat (k)" for every discrete variable, so
+# for Blume-Capel variables those headers name the wrong quantity. These
+# helpers relabel what easybgm stores and pull the pair into its own table.
+
+# Which variables were fitted as Blume-Capel? bgms returns 'variable_type' with
+# one entry per variable when the user supplied a vector, and a single string
+# when the same type was applied to all of them.
+bc_variable_names <- function(args, varnames){
+  variable_type <- rep_len(args$variable_type, length(varnames))
+  varnames[variable_type == "blume-capel"]
+}
+
+# bgms recodes discrete scores to start at 0 and shifts the baseline category
+# with them, so args$baseline_category is on the recoded scale. The offset is
+# args$blume_capel_shift, which is NA for variables that are not Blume-Capel.
+# Adding the two recovers the baseline on the scale the user supplied.
+#
+# Mind the indexing: bgms indexes 'baseline_category' and 'blume_capel_shift'
+# over the discrete variables only, whereas 'variable_type' has one entry per
+# variable. The two therefore differ in length as soon as the model holds a
+# continuous variable, and lining them up positionally silently misreports the
+# baseline. The returned vector is named, so callers can index it by variable.
+bc_baseline_categories <- function(args, varnames){
+  variable_type <- rep_len(args$variable_type, length(varnames))
+  is_discrete <- variable_type != "continuous"
+  discrete_names <- varnames[is_discrete]
+  n <- length(discrete_names)
+
+  align <- function(x, default){
+    if(is.null(x)) return(rep(default, n))
+    if(length(x) == n) return(x)
+    # Tolerate a per-variable vector as well, in case bgms ever reports one.
+    if(length(x) == length(varnames)) return(x[is_discrete])
+    rep_len(x, n)
+  }
+
+  baseline <- align(args$baseline_category, 0)
+  shift <- align(args$blume_capel_shift, 0)
+  shift[is.na(shift)] <- 0
+
+  stats::setNames(baseline + shift, discrete_names)
+}
+
+# Rename the Blume-Capel columns of the stored main-effect matrix. When
+# Blume-Capel and ordinal variables share one matrix the column headers cannot
+# describe both, so record the per-row meaning as an attribute instead.
+label_bc_thresholds <- function(thresholds, bc_names){
+  relabel <- function(m){
+    if(is.null(m) || !is.matrix(m) || is.null(rownames(m))) return(m)
+    is_bc <- rownames(m) %in% bc_names
+    if(!any(is_bc)) return(m)
+    if(all(is_bc) && ncol(m) == 2){
+      colnames(m) <- c("linear", "quadratic")
+    } else {
+      attr(m, "variable_type") <- ifelse(is_bc, "blume-capel", "ordinal")
+    }
+    m
+  }
+
+  if(is.list(thresholds) && !is.null(thresholds$discrete)){
+    thresholds$discrete <- relabel(thresholds$discrete)
+    return(thresholds)
+  }
+  relabel(thresholds)
+}
+
+# Build the Blume-Capel parameter table, and optionally the posterior samples,
+# from a fitted bgms object. Returns NULL when the fit holds no Blume-Capel
+# variables or does not carry the posterior summary these fields are built from.
+extract_blume_capel <- function(fit, varnames, args, save = FALSE){
+  bc_names <- bc_variable_names(args, varnames)
+  if(length(bc_names) == 0) return(NULL)
+
+  summ <- fit$posterior_summary_main
+  if(is.null(summ) || is.null(rownames(summ))) return(NULL)
+
+  # Match on the full parameter label rather than on a suffix, so a variable
+  # that happens to be named "x (linear)" cannot be mistaken for one.
+  labels <- as.vector(rbind(paste0(bc_names, " (linear)"),
+                            paste0(bc_names, " (quadratic)")))
+  idx <- match(labels, rownames(summ))
+  if(anyNA(idx)) return(NULL)
+
+  baseline <- bc_baseline_categories(args, varnames)
+
+  # Credible intervals come from the draws themselves; posterior_summary_main
+  # reports only mean, sd, mcse, n_eff and Rhat.
+  lower <- upper <- rep(NA_real_, length(labels))
+  samples <- NULL
+  raw <- tryCatch(fit$raw_samples, error = function(e) NULL)
+  par_names <- raw$parameter_names$main
+  if(!is.null(raw$main) && !is.null(par_names)){
+    cols <- match(labels, par_names)
+    if(!anyNA(cols)){
+      draws <- do.call(rbind, raw$main)
+      if(ncol(draws) == length(par_names)){
+        draws <- draws[, cols, drop = FALSE]
+        colnames(draws) <- labels
+        quantiles <- apply(draws, 2, stats::quantile,
+                           probs = c(0.025, 0.975), names = FALSE)
+        lower <- quantiles[1, ]
+        upper <- quantiles[2, ]
+        if(save) samples <- draws
+      }
+    }
+  }
+
+  table <- data.frame(
+    variable = rep(bc_names, each = 2),
+    effect = rep(c("linear", "quadratic"), times = length(bc_names)),
+    baseline = rep(unname(baseline[bc_names]), each = 2),
+    estimate = summ$mean[idx],
+    sd = summ$sd[idx],
+    lower = lower,
+    upper = upper,
+    convergence = summ$Rhat[idx],
+    row.names = NULL
+  )
+  colnames(table) <- c("Variable", "Effect", "Baseline Category", "Estimate",
+                       "Posterior SD", "Lower 2.5%", "Upper 97.5%",
+                       "Convergence")
+
+  list(table = table, samples = samples)
+}

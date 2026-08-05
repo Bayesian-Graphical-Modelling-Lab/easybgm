@@ -240,7 +240,7 @@ easybgm_compare <- function(data,
   # Per-variable 'type' vectors require bgms >= 0.2.0.0. Resolve the fitting
   # package first, then validate 'type' against it: the legal values of 'type'
   # depend on the engine, not on the bgms version directly.
-  bgms_supports_vector_type <- packageVersion("bgms") > "0.1.6.3"
+  bgms_supports_vector_type <- packageVersion("bgms") >= "0.2.0.0"
   is_vector_type <- length(type) > 1
 
   if(is_vector_type && !bgms_supports_vector_type){

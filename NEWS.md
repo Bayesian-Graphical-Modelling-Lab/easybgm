@@ -17,7 +17,31 @@
   `beta_bernoulli_prior()`, `sbm_prior()`). The older flat arguments still work
   and are translated internally.
 
+## Blume-Capel main effects
+
+* Fits with at least one Blume-Capel variable now return
+  `blume_capel_parameters`, a data frame holding the posterior mean, posterior
+  standard deviation, 95% credible interval and R-hat of the linear and
+  quadratic effect of each Blume-Capel variable, together with the baseline
+  category it was fitted with. Unlike the category thresholds of an ordinal
+  variable, these two parameters are usually of substantive interest, so they
+  are also printed by `summary()` rather than left in the fit object.
+* With `save = TRUE`, the posterior draws of those effects are returned in
+  `samples_blume_capel`.
+* Baseline categories are reported on the scale of the input data. bgms recodes
+  discrete scores to start at 0 and shifts the baseline category with them, so
+  the value it stores internally can be lower than the one the user supplied.
+
 ## Bug fixes
+
+* For Blume-Capel variables, the two columns of `thresholds` were labelled
+  `cat (1)` and `cat (2)`, the same headers bgms uses for genuine category
+  thresholds. They are in fact the linear and quadratic effect, and are now
+  named accordingly. Where Blume-Capel and ordinal variables share one matrix
+  the headers cannot describe both, so the per-row meaning is recorded in the
+  matrix's `"variable_type"` attribute.
+* `print()` on an unsummarised `easybgm` object printed the closing notes twice,
+  once from the summary it prints internally and once from its own tail.
 
 * `centrality` for bgms fits was computed from a mis-permuted edge matrix: the
   posterior samples were read back in BGGM's upper-triangle order rather than

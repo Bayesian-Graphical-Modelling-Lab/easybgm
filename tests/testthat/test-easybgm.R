@@ -14,7 +14,7 @@ test_that("easybgm returns expected structure across valid type–package combos
   p <- ncol(dat)
   itr <- 10
   
-  if(packageVersion("bgms") > "0.1.6.3"){
+  if(packageVersion("bgms") >= "0.2.0.0"){
   # Test only core combinations
   combos <- list(
     ### BGGM
@@ -35,7 +35,7 @@ test_that("easybgm returns expected structure across valid type–package combos
     list(type = "mixed",      pkg = "bgms", sv = T, cnt = T),
     list(type = c("ordinal", "ordinal", "continuous", "continuous", "ordinal"), pkg = "bgms", sv = F, cnt = F)
   )
-  } else if(packageVersion("bgms") < "0.2.0.0"){
+  } else {
     # Test only core combinations
     combos <- list(
       ### BGGM
@@ -66,7 +66,11 @@ test_that("easybgm returns expected structure across valid type–package combos
     # bgms defaults to warmup = 2000, which dominates the runtime at these tiny
     # iteration counts. 300 is the shortest warmup bgms does not warn about.
     # BGGM and BDgraph have no warmup argument.
-    extra <- if (identical(pkg, "bgms")) list(warmup = 300) else list()
+    # bgms also defaults to cores = parallel::detectCores(); CRAN caps check
+    # processes at 2 cores, so pin it rather than claiming every core on the
+    # machine. detectCores() can also return NA on restricted hosts, which
+    # would otherwise make the fit fail.
+    extra <- if (identical(pkg, "bgms")) list(warmup = 300, cores = 2L) else list()
 
     base_args <- list(
       data       = dat,
@@ -169,8 +173,9 @@ test_that("plotting functions work across valid type–package combos", {
         )
       }) 
     } else {
-      # bgms defaults to warmup = 2000; BGGM has no warmup argument
-      extra <- if (identical(pkg, "bgms")) list(warmup = 300) else list()
+      # bgms defaults to warmup = 2000 and cores = detectCores(); BGGM has
+      # neither argument. Cores are pinned to 2 for CRAN's check limit.
+      extra <- if (identical(pkg, "bgms")) list(warmup = 300, cores = 2L) else list()
       suppressMessages({
         res <- do.call(easybgm, c(
           list(
@@ -268,13 +273,13 @@ test_that("easybgm_compare errors for continuous/mixed without BGGM", {
 
 
 test_that("easybgm_compare accepts a per-variable type vector", {
-  skip_if(packageVersion("bgms") <= "0.1.6.3")
+  skip_if(packageVersion("bgms") < "0.2.0.0")
   data("Wenchuan", package = "bgms")
   dat <- na.omit(Wenchuan)[1:30, 1:3]
   grp <- rep(1:2, length.out = nrow(dat))
   fit <- suppressWarnings(
     easybgm_compare(dat, type = rep("ordinal", 3), group_indicator = grp,
-                    iter = 50, warmup = 300, progress = FALSE)
+                    iter = 50, warmup = 300, cores = 2L, progress = FALSE)
   )
   expect_s3_class(fit, "package_bgms_compare")
 
@@ -315,8 +320,9 @@ test_that("easybgm_compare returns expected structure across valid type–packag
     pkg <- cmb$pkg
     sv <- cmb$sv
     
-    # bgms defaults to warmup = 2000; BGGM has no warmup argument
-    extra <- if (identical(pkg, "bgms")) list(warmup = 300) else list()
+    # bgms defaults to warmup = 2000 and cores = detectCores(); BGGM has
+    # neither argument. Cores are pinned to 2 for CRAN's check limit.
+    extra <- if (identical(pkg, "bgms")) list(warmup = 300, cores = 2L) else list()
 
     if(!is.null(cmb$multi_group)){
       group <- rep(c(1, 2, 3), each = 30)
@@ -394,7 +400,7 @@ test_that("bgms centrality uses the lower-triangle edge ordering", {
   dat <- na.omit(Wenchuan)[1:40, 1:5]
 
   res <- suppressWarnings(
-    easybgm(dat, type = "ordinal", iter = 50, warmup = 300,
+    easybgm(dat, type = "ordinal", iter = 50, warmup = 300, cores = 2L,
             save = TRUE, centrality = TRUE, progress = FALSE)
   )
   p <- ncol(res$parameters)
@@ -419,7 +425,7 @@ test_that("structure is the median probability model when save = FALSE", {
   dat <- na.omit(Wenchuan)[1:40, 1:4]
 
   res <- suppressWarnings(
-    easybgm(dat, type = "ordinal", iter = 50, warmup = 300,
+    easybgm(dat, type = "ordinal", iter = 50, warmup = 300, cores = 2L,
             save = FALSE, progress = FALSE)
   )
   expect_equal(unname(res$structure), unname(1 * (res$inc_probs > 0.5)))
@@ -435,7 +441,8 @@ test_that("entry points accept raw bgms fit objects", {
   dat <- na.omit(Wenchuan)[1:40, 1:4]
 
   fit <- suppressWarnings(
-    bgms::bgm(dat, iter = 50, warmup = 300, chains = 2, display_progress = FALSE)
+    bgms::bgm(dat, iter = 50, warmup = 300, chains = 2, cores = 2L,
+              display_progress = FALSE)
   )
   # these two list methods used to fail on the missing `save` fit argument
   expect_no_error(suppressWarnings(plot_centrality(list(fit, fit))))
@@ -443,29 +450,146 @@ test_that("entry points accept raw bgms fit objects", {
 
   # clusterBayesfactor used to call names()<- on the fit, which an S7 object
   # does not allow, and read $sbm, which a raw fit does not carry
-  sbm_arg <- if (packageVersion("bgms") > "0.1.6.3") {
+  sbm_arg <- if (packageVersion("bgms") >= "0.2.0.0") {
     bgms::sbm_prior()
   } else {
     "Stochastic-Block"
   }
   fit_sbm <- suppressWarnings(
     bgms::bgm(dat, edge_prior = sbm_arg, iter = 50, warmup = 300,
-              chains = 2, display_progress = FALSE)
+              chains = 2, cores = 2L, display_progress = FALSE)
   )
   expect_no_error(suppressWarnings(clusterBayesfactor(fit_sbm)))
 })
 
 test_that("legacy interaction_scale does not raise a bgms deprecation warning", {
-  skip_if(packageVersion("bgms") <= "0.1.6.3")
+  skip_if(packageVersion("bgms") < "0.2.0.0")
   set.seed(123)
   data("Wenchuan", package = "bgms")
   dat <- na.omit(Wenchuan)[1:40, 1:3]
 
   w <- character(0)
   withCallingHandlers(
-    easybgm(dat, type = "ordinal", iter = 50, warmup = 300, progress = FALSE,
-            interaction_scale = 2.5),
+    easybgm(dat, type = "ordinal", iter = 50, warmup = 300, cores = 2L,
+            progress = FALSE, interaction_scale = 2.5),
     warning = function(x) { w <<- c(w, conditionMessage(x)); invokeRestart("muffleWarning") }
   )
   expect_false(any(grepl("deprecat", w, ignore.case = TRUE)))
+})
+
+###-------------
+### Blume-Capel main effects
+###-------------
+
+test_that("easybgm reports Blume-Capel linear and quadratic effects", {
+  skip_if_not(packageVersion("bgms") >= "0.2.0.0")
+
+  set.seed(123)
+  data("Wenchuan", package = "bgms")
+  dat <- na.omit(Wenchuan)[1:60, 1:4]
+  p <- ncol(dat)
+  itr <- 20
+
+  res <- suppressWarnings(easybgm(dat, type = "blume-capel", package = "bgms",
+                                  baseline_category = 3, iter = itr,
+                                  warmup = 300, cores = 2L,
+                                  progress = FALSE, save = TRUE))
+
+  bc <- res$blume_capel_parameters
+  expect_s3_class(bc, "data.frame")
+  # two parameters, linear and quadratic, for every variable
+  expect_equal(nrow(bc), 2 * p)
+  expect_equal(unique(bc$Variable), colnames(dat))
+  expect_equal(unique(bc$Effect), c("linear", "quadratic"))
+  expect_false(any(is.na(bc$Estimate)))
+
+  # The baseline is reported on the scale of the input data. bgms recodes
+  # scores to start at 0 and shifts the baseline with them, so reading
+  # args$baseline_category without adding back the shift understates it.
+  expect_true(all(bc[["Baseline Category"]] == 3))
+
+  # the table summarises exactly the draws that were saved
+  expect_equal(unname(colMeans(res$samples_blume_capel)), bc$Estimate)
+  expect_equal(colnames(res$samples_blume_capel),
+               paste0(bc$Variable, " (", bc$Effect, ")"))
+  expect_equal(nrow(res$samples_blume_capel), 4 * itr)
+
+  # credible interval brackets the posterior mean
+  expect_true(all(bc[["Lower 2.5%"]] <= bc$Estimate))
+  expect_true(all(bc$Estimate <= bc[["Upper 97.5%"]]))
+
+  # $thresholds holds the same two parameters, now named for what they are
+  expect_equal(colnames(res$thresholds), c("linear", "quadratic"))
+  expect_equal(as.vector(t(res$thresholds[unique(bc$Variable), ])), bc$Estimate)
+
+  # summary carries the table and print emits it exactly once
+  s <- summary(res)
+  expect_s3_class(s$blume_capel_parameters, "data.frame")
+  out <- capture.output(print(s))
+  expect_equal(sum(grepl("BLUME-CAPEL MAIN EFFECTS", out)), 1)
+  expect_equal(sum(grepl("BLUME-CAPEL MAIN EFFECTS", capture.output(print(res)))), 1)
+})
+
+test_that("Blume-Capel effects are correct when mixed with other variable types", {
+  skip_if_not(packageVersion("bgms") >= "0.2.0.0")
+
+  set.seed(123)
+  data("Wenchuan", package = "bgms")
+  dat <- na.omit(Wenchuan)[1:60, 1:4]
+  # a continuous variable makes the bgms argument vectors shorter than p:
+  # baseline_category and blume_capel_shift are indexed over discrete
+  # variables only, so a positional read misaligns them.
+  type <- c("continuous", "blume-capel", "ordinal", "blume-capel")
+
+  res <- suppressWarnings(easybgm(dat, type = type, package = "bgms",
+                                  baseline_category = 4, iter = 20,
+                                  warmup = 300, cores = 2L, progress = FALSE))
+
+  bc <- res$blume_capel_parameters
+  expect_equal(unique(bc$Variable), colnames(dat)[type == "blume-capel"])
+  expect_equal(nrow(bc), 4)
+  expect_true(all(bc[["Baseline Category"]] == 4))
+
+  # Blume-Capel and ordinal rows share one matrix, so the column headers
+  # cannot describe both and the per-row meaning is recorded instead
+  disc <- res$thresholds$discrete
+  expect_equal(attr(disc, "variable_type"),
+               c("blume-capel", "ordinal", "blume-capel"))
+  expect_equal(as.vector(t(disc[unique(bc$Variable), 1:2])), bc$Estimate)
+})
+
+test_that("no Blume-Capel output when no variable is Blume-Capel", {
+  skip_if_not(packageVersion("bgms") >= "0.2.0.0")
+
+  set.seed(123)
+  data("Wenchuan", package = "bgms")
+  dat <- na.omit(Wenchuan)[1:60, 1:4]
+
+  res <- suppressWarnings(easybgm(dat, type = "ordinal", package = "bgms",
+                                  iter = 20, warmup = 300, cores = 2L,
+                                  progress = FALSE, save = TRUE))
+
+  expect_null(res$blume_capel_parameters)
+  expect_null(res$samples_blume_capel)
+  expect_null(attr(res$thresholds, "variable_type"))
+  expect_null(summary(res)$blume_capel_parameters)
+  expect_equal(sum(grepl("BLUME-CAPEL", capture.output(print(res)))), 0)
+})
+
+test_that("Blume-Capel samples are only stored when save = TRUE", {
+  skip_if_not(packageVersion("bgms") >= "0.2.0.0")
+
+  set.seed(123)
+  data("Wenchuan", package = "bgms")
+  dat <- na.omit(Wenchuan)[1:60, 1:4]
+
+  res <- suppressWarnings(easybgm(dat, type = "blume-capel", package = "bgms",
+                                  baseline_category = 2, iter = 20,
+                                  warmup = 300, cores = 2L,
+                                  progress = FALSE, save = FALSE))
+
+  expect_null(res$samples_blume_capel)
+  expect_s3_class(res$blume_capel_parameters, "data.frame")
+  # the interval does not depend on save = TRUE
+  expect_false(any(is.na(res$blume_capel_parameters[["Lower 2.5%"]])))
 })

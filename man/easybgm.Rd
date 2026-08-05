@@ -140,7 +140,13 @@ model (edges with posterior inclusion probability > 0.5).
 \code{"continuous"}, \code{"ordinal"}, \code{"mixed"}).
 \item \code{thresholds}: Threshold/intercept parameters (bgms only). The
 format depends on the model type: a matrix for ordinal/binary models,
-\code{NULL} for continuous models, or a list for mixed models.
+\code{NULL} for continuous models, or a list for mixed models. For
+Blume-Capel variables the two columns are the linear and quadratic
+effects rather than category thresholds; they are named accordingly, and
+are also reported in \code{blume_capel_parameters} (see below). Where
+Blume-Capel and ordinal variables share one matrix, the column headers
+cannot describe both, so the per-row meaning is recorded in the
+\code{"variable_type"} attribute of the matrix.
 }
 
 \strong{Returned for bgms and BDgraph:}
@@ -194,10 +200,31 @@ and for the discrete block of mixed models. \code{NULL} for continuous
 models.
 }
 
+\strong{Returned for Blume-Capel variables (bgms >= 0.2.0.0):}
+\itemize{
+\item \code{blume_capel_parameters}: A data frame with two rows per
+Blume-Capel variable, holding the posterior mean, posterior standard
+deviation, 95 percent credible interval and R-hat convergence statistic
+of its linear and quadratic effects, together with the baseline category
+used. Unlike the category thresholds of an ordinal variable, these are
+usually of substantive interest: for a variable with baseline category
+\eqn{b}, the threshold of category \eqn{x} is
+\eqn{\mu(x) = \alpha x + \beta (x - b)^2}, where \eqn{\alpha} is the
+linear and \eqn{\beta} the quadratic effect. A negative quadratic effect
+indicates responses concentrated around the baseline category, a positive
+one a preference for the extreme categories. Baseline categories are
+reported on the scale of the input data. This element is \code{NULL} when
+no variable is Blume-Capel, and is not available with \code{bgms}
+0.1.6.3.
+}
+
 \strong{Returned when save = TRUE:}
 \itemize{
 \item \code{samples_posterior}: A k x iter matrix of posterior samples for
 each edge weight parameter (k = p*(p-1)/2 edges).
+\item \code{samples_blume_capel}: Posterior samples of the Blume-Capel
+linear and quadratic effects, with one column per parameter, pooled
+across chains. Only present when at least one variable is Blume-Capel.
 }
 
 \strong{Returned when centrality = TRUE:}
@@ -347,7 +374,8 @@ data <- na.omit(Wenchuan)[1:100, 1:5]
 # --- Continuous data (fitted by bgms >= 0.2.0.0, otherwise by BGGM) ---
 fit <- easybgm(data, type = "continuous",
                 iter = 100,   # for demonstration only; increase for real analyses
-                warmup = 300  # bgms defaults to 2000
+                warmup = 300, # bgms defaults to 2000
+                cores = 2     # bgms defaults to parallel::detectCores()
                 )
 summary(fit)
 
