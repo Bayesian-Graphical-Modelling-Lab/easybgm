@@ -26,18 +26,14 @@
 #'
 #'   \strong{2. A character vector of length p} (per-variable specification):
 #'   Each element gives the type of the corresponding column of \code{data},
-#'   drawn from \code{"ordinal"}, \code{"continuous"}, \code{"blume-capel"},
-#'   and \code{"binary"}. For example,
-#'   \code{type = c("ordinal", "ordinal", "continuous")} specifies that the
-#'   first two columns are ordinal and the third is continuous.
-#'
+#'   can be any of: \code{"ordinal"}, \code{"continuous"}, \code{"blume-capel"},
+#'   and \code{"binary"}. For example,\code{type = c("ordinal", "ordinal", "continuous")} 
+#'   specifies that the first two columns are ordinal and the third is continuous.
 #'   Per-variable vectors are fitted by \code{bgms} and require \code{bgms}
-#'   version 0.2.0.0 or later. They are the most flexible way to specify mixed
-#'   data and make \code{not_cont} unnecessary.
+#'   version 0.2.0.0 or later.
 #'
-#'   Which values are legal depends on the fitting package rather than on the
-#'   \code{bgms} version directly; see \strong{Data types and package support}
-#'   in the Details section below.
+#'  \strong{Data types and package support} in the Details section below specifies
+#'  which package will be used for which variable type. 
 #'
 #' @param package The R-package used for fitting the network model. Optional.
 #'   Supported options:
@@ -53,15 +49,9 @@
 #'   }
 #'
 #'   If \code{package} is not specified, \code{bgms} is used for all data types
-#'   from \code{bgms} version 0.2.0.0 onwards. With \code{bgms} 0.1.6.3, which
-#'   cannot fit continuous data, \code{bgms} is used for binary, ordinal, and
-#'   blume-capel data and \code{BGGM} for continuous and mixed data.
-#'
-#'   An explicit \code{package} is honoured for every data type that package
-#'   supports. Neither \code{BGGM} nor \code{BDgraph} implements the Blume-Capel
-#'   model or accepts a per-variable type vector, so requesting either package
-#'   for those produces a warning and \code{easybgm} fits the model with
-#'   \code{bgms} instead.
+#'   from \code{bgms} version 0.2.0.0 onwards. With \code{bgms} 0.1.6.3, \code{bgms} 
+#'   is used for binary, ordinal, and blume-capel data and \code{BGGM} for 
+#'   continuous and mixed data.
 #'
 #' @param iter Number of iterations for the sampler. The default depends on the
 #'   package:
@@ -80,20 +70,17 @@
 #'   weight parameter. Setting \code{centrality = TRUE} automatically sets
 #'   \code{save = TRUE}.
 #'
-#' @param centrality Logical. Should the centrality measures be extracted
-#'   (default = \code{FALSE})? Note that this will significantly increase
-#'   computation time. Automatically sets \code{save = TRUE}.
+#' @param centrality Logical. Should the strength centrality measures be extracted
+#'   (default = \code{FALSE})? Automatically sets \code{save = TRUE}.
 #'
-#' @param progress Logical. Should a progress bar be shown
-#'   (default = \code{TRUE})?
+#' @param progress Logical. Should a progress bar be shown 
+#'  (default = \code{TRUE})?
 #'   
 #' @param not_cont A binary vector of length p, required whenever
 #'   \code{type = "mixed"}. Each element indicates whether the corresponding
 #'   variable is not continuous (\code{1} = not continuous/ordinal,
-#'   \code{0} = continuous). When the model is fitted with \code{bgms}, this is
-#'   used to construct a per-variable type vector internally; \code{BGGM} and
-#'   \code{BDgraph} use it directly. It is not needed when \code{type} is
-#'   already given as a per-variable vector.
+#'   \code{0} = continuous). This parameter is not required when specifying 
+#'   a variable vector with \code{bgms}.
 #'
 #' @param baseline_category Integer or vector, required if at least one variable 
 #'   is of type \code{"blume-capel"}. Baseline category used in
@@ -110,13 +97,10 @@
 #' \strong{Always returned:}
 #' \itemize{
 #'   \item \code{parameters}: A p x p matrix of posterior mean partial
-#'     association estimates. Note that the scale differs between fitting
-#'     packages: \code{BGGM} and \code{BDgraph} report partial correlations,
-#'     whereas \code{bgms} reports the pairwise association parameter (the
-#'     coupling that enters each conditional distribution). For \code{bgms}
-#'     fits of continuous or mixed data the partial correlations are returned
-#'     separately in \code{partial_correlations} (see below). Edge weights from
-#'     different packages are therefore not directly comparable.
+#'     association estimates. Note that the scale differs between variable types. 
+#'     For continuous variables, the parameter represents partial correlations, 
+#'     for discrete variables partial associations. Edge weights from
+#'     different variable types are therefore not directly comparable.
 #'   \item \code{inc_probs}: A p x p matrix of posterior inclusion
 #'     probabilities.
 #'   \item \code{inc_BF}: A p x p matrix of posterior inclusion Bayes factors.
@@ -223,10 +207,10 @@
 #'
 #' \strong{Data types and package support}
 #'
-#' Which values of \code{type} are legal depends on the package that fits the
-#' model. \code{BGGM} and \code{BDgraph} fit continuous, mixed, ordinal and
+#' \code{BGGM} and \code{BDgraph} fit continuous, mixed, ordinal and
 #' binary data; the Blume-Capel model and per-variable \code{type} vectors are
-#' fitted only by \code{bgms}. Because \code{bgms} 0.1.6.3 cannot fit
+#' fitted only by \code{bgms}. "Default" marks the package used when 
+#' \code{package} is left unspecified. Because \code{bgms} 0.1.6.3 cannot fit
 #' continuous data, the \code{bgms} column is split by version:
 #'
 #' \tabular{lcccc}{
@@ -239,28 +223,8 @@
 #'   per-variable vector  \tab Yes           \tab No             \tab No            \tab No  \cr
 #' }
 #'
-#' "Default" marks the package used when \code{package} is left unspecified.
-#' An explicit \code{package} is honoured for every data type those packages
-#' support. Requesting \code{BGGM} or \code{BDgraph} for the Blume-Capel model
-#' or for a per-variable \code{type} vector produces a warning and falls back to
-#' \code{bgms}.
+#' 
 #'
-#' \strong{How \code{type} and \code{not_cont} relate}
-#'
-#' There are two ways to specify mixed-type data:
-#' \enumerate{
-#'   \item \strong{Using \code{type = "mixed"} with \code{not_cont}}: Set
-#'     \code{type = "mixed"} and provide a binary vector \code{not_cont} of
-#'     length p. When the model is fitted with \code{bgms}, this is translated
-#'     internally to a per-variable type vector, where \code{not_cont == 1}
-#'     maps to \code{"ordinal"} and \code{not_cont == 0} maps to
-#'     \code{"continuous"}. \code{BGGM} and \code{BDgraph} use \code{not_cont}
-#'     directly.
-#'   \item \strong{Using a per-variable type vector} (\code{bgms} >= 0.2.0.0
-#'     only): Directly specify the type of each variable, e.g.,
-#'     \code{type = c("ordinal", "continuous", "ordinal")}. This is more
-#'     flexible and does not require the \code{not_cont} argument.
-#' }
 #'
 #' \strong{Prior specification}
 #'
@@ -269,7 +233,7 @@
 #' \code{...} to the fitting function of the chosen package. We give an
 #' overview of the available prior arguments per package below.
 #'
-#' \emph{bgms} (>= 0.2.0.0): the preferred interface uses prior-constructor
+#' \emph{bgms} (>= 0.2.0.0) uses prior-constructor
 #' objects from the \code{bgms} package. Pass them through \code{...}:
 #' \itemize{
 #'   \item \code{interaction_prior}: A parameter prior on pairwise interactions.
@@ -278,9 +242,6 @@
 #'     or \code{\link[bgms]{beta_prime_prior}(alpha, beta)}.
 #'     For example, a cauchy prior with scale 1 would be specified with adding the
 #'     argument \code{interaction_prior = cauchy_prior(1)} to the easybgm call.
-#'     Note that the default is a Normal slab, which has considerably lighter
-#'     tails than the Cauchy used by earlier versions of \code{bgms}, and so
-#'     constrains weakly identified edges more tightly.
 #'   \item \code{threshold_prior}: A parameter prior on threshold (main effect)
 #'     parameters. Use \code{\link[bgms]{beta_prime_prior}(alpha, beta)}
 #'     (default \code{beta_prime_prior(0.5, 0.5)}),
@@ -289,12 +250,14 @@
 #'     For example, a cauchy prior with scale 1 would be specified with adding the 
 #'     argument \code{threshold_prior = cauchy_prior(1)} to the easybgm call.
 #'   \item \code{means_prior}: A prior on the means of continuous variables in
-#'     mixed MRF models. Default \code{normal_prior(scale = 1)}.
+#'     mixed MRF models. Default \code{normal_prior(scale = 1)}, specify with
+#'     \code{means_prior = normal_prior(scale = 1)}.
 #'   \item \code{precision_scale_prior}: A prior on the diagonal entries of the
 #'     precision matrix (GGM and mixed MRF). Use
-#'     \code{\link[bgms]{exponential_prior}(rate)} (default
+#'     \code{exponential_prior(rate)} (default
 #'     \code{exponential_prior(eta = 1)}) or
-#'     \code{\link[bgms]{gamma_prior}(shape, rate)}.
+#'     \code{gamma_prior(shape, rate)}, for example, specified as 
+#'     \code{precision_scale_prior = exponential_prior(1)}
 #'   \item \code{precision_graph_prior}: How the graph prior is applied to the
 #'     precision matrix (GGM and mixed MRF). Either \code{"hierarchical"} (the
 #'     default), which tracks the normalizing constant, or \code{"joint"}.
@@ -310,23 +273,9 @@
 #'     to the easybgm call.
 #' }
 #'
-#' For backwards compatibility, the legacy flat arguments below are still
-#' accepted via \code{...} and are translated into the constructors above, so
-#' they do not raise \code{bgms} deprecation warnings:
-#' \itemize{
-#'   \item \code{interaction_scale}, \code{pairwise_scale}: Scale of a Cauchy
-#'     prior on the pairwise interactions, translated to
-#'     \code{cauchy_prior(scale)}. Note that this is a Cauchy, whereas the
-#'     current default is \code{normal_prior(scale = 1)}.
-#'   \item \code{threshold_alpha}, \code{threshold_beta} (or \code{main_alpha},
-#'     \code{main_beta}): Shape parameters translated to
-#'     \code{beta_prime_prior(alpha, beta)}.
-#'   \item \code{edge_prior}: Character string \code{"Bernoulli"},
-#'     \code{"Beta-Bernoulli"}, or \code{"Stochastic-Block"}, combined with the
-#'     flat hyperparameters \code{inclusion_probability},
-#'     \code{beta_bernoulli_alpha}, \code{beta_bernoulli_beta},
-#'     \code{dirichlet_alpha}, and \code{lambda}.
-#' }
+#' For backwards compatibility of \emph{bgms} (< 0.2.0.0), the previous
+#' prior specifications are still accepted and translated into the relevant constructs. 
+#' Check the previous bgms version for its prior arguments. 
 #'
 #'
 #' \emph{BDgraph}:
@@ -364,9 +313,7 @@
 #'
 #' # --- Continuous data (fitted by bgms >= 0.2.0.0, otherwise by BGGM) ---
 #' fit <- easybgm(data, type = "continuous",
-#'                 iter = 100,   # for demonstration only; increase for real analyses
-#'                 warmup = 300, # bgms defaults to 2000
-#'                 cores = 2     # bgms defaults to parallel::detectCores()
+#'                 iter = 100   # for demonstration only; increase for real analyses
 #'                 )
 #' summary(fit)
 #'
@@ -376,12 +323,12 @@
 #'   dat3 <- data[, 1:3]
 #'   fit_vec <- easybgm(dat3,
 #'                       type = c("ordinal", "ordinal", "continuous"),
-#'                       iter = 100, warmup = 300)
+#'                       iter = 100)
 #' }
 #'
 #' # --- Extract posterior samples and centrality ---
 #' fit_full <- easybgm(data, type = "continuous",
-#'                      iter = 100, warmup = 300,
+#'                      iter = 100,
 #'                      centrality = TRUE, save = TRUE)
 #'
 #' # --- Using BDgraph for continuous data ---
@@ -405,9 +352,7 @@ easybgm <- function(data, type, package = NULL,
                     ...){
   
   # Per-variable 'type' vectors require both bgms as the fitting package and
-  # bgms >= 0.2.0.0. Resolve the fitting package first, then validate 'type'
-  # against it: the legal values of 'type' depend on the engine, not on the
-  # bgms version directly.
+  # bgms >= 0.2.0.0. 
   bgms_supports_vector_type <- packageVersion("bgms") >= "0.2.0.0"
   is_vector_type <- length(type) > 1
 
@@ -450,10 +395,7 @@ easybgm <- function(data, type, package = NULL,
                            call. = FALSE))
 
     # BGGM and BDgraph fit continuous, mixed, ordinal and binary data, so an
-    # explicit package choice is honoured for those. Neither implements the
-    # Blume-Capel model, and neither accepts a per-variable 'type' vector;
-    # those two are bgms-only and override the choice. Warn rather than
-    # switching silently.
+    # explicit package choice is honoured for those. 
     if(package != "package_bgms"){
       override_reason <- if(is_vector_type){
         "a per-variable 'type' vector"
@@ -474,11 +416,11 @@ easybgm <- function(data, type, package = NULL,
   # --- Validate 'type' against the resolved package ------------------------
   if(package == "package_bgms"){
     if(!bgms_supports_vector_type && !type %in% c("ordinal", "binary", "blume-capel")){
-      stop("bgms version ", packageVersion("bgms"), " can only fit 'ordinal', ",
-           "'binary', or 'blume-capel' data, not '", type, "'. Please either ",
-           "update bgms to 0.2.0.0 or later, or fit '", type, "' data with ",
-           "package = 'BGGM' or package = 'BDgraph'.",
+      warning("bgms version ", packageVersion("bgms"), " can only fit 'ordinal', ",
+           "'binary', or 'blume-capel' data, not '", type, "'. To use bgms, please ",
+           "update bgms to 0.2.0.0 or later. Package changed to BGGM. ",
            call. = FALSE)
+      package <- "package_bggm"
     }
     # bgms has no 'mixed' type; it expresses mixedness through a per-variable
     # vector. Translate 'mixed' + not_cont into that vector.
@@ -518,11 +460,12 @@ easybgm <- function(data, type, package = NULL,
     # per-variable 'type' vector. Both were redirected to bgms above, so this
     # is a safety net.
     if(is_vector_type || type == "blume-capel"){
-      stop(if(package == "package_bggm") "BGGM" else "BDgraph",
+      warning(if(package == "package_bggm") "BGGM" else "BDgraph",
            " cannot fit ",
            if(is_vector_type) "a per-variable 'type' vector" else "'blume-capel' data",
-           ". Please use package = 'bgms' for these data types.",
+           ". easybgm switches to package = 'bgms' for these data types.",
            call. = FALSE)
+      package <- "package_bgms"
     }
     bggm_bdgraph_types <- c("continuous", "mixed", "ordinal", "binary")
     if(!type %in% bggm_bdgraph_types){

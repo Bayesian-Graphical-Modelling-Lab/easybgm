@@ -83,7 +83,7 @@ summary.easybgm <- function(object,
       )
     colnames(results) <- c(
       "Relation",
-      "Posterior Incl. Prob.",
+      "Post. Incl. Prob.",
       "Inclusion BF",
       "Category")
   } else if(is.null(object$inc_probs)){
@@ -158,7 +158,7 @@ summary.easybgm <- function(object,
         colnames(results) <- c(
           "Relation",
           "Estimate",
-          "Posterior Incl. Prob.",
+          "Post. Incl. Prob.",
           "Inclusion BF",
           "Category",
           "Convergence Estimate",
@@ -177,7 +177,7 @@ summary.easybgm <- function(object,
         colnames(results) <- c(
           "Relation",
           "Estimate",
-          "Posterior Incl. Prob.",
+          "Post. Incl. Prob.",
           "Inclusion BF",
           "Category",
           "Convergence")
@@ -195,7 +195,7 @@ summary.easybgm <- function(object,
       colnames(results) <- c(
         "Relation",
         "Estimate",
-        "Posterior Incl. Prob.",
+        "Post. Incl. Prob.",
         "Inclusion BF",
         "Category")
     }
@@ -447,12 +447,11 @@ print.easybgm <- function(x, ...){
   # are not comparable by eye, so say so rather than leave the reader to assume.
   if("package_bgms" %in% class(x) &&
      isTRUE(x$model %in% c("continuous", "mixed"))){
-    cat("\n Note: for 'bgms', the reported edge weights are pairwise association",
-        "\n parameters (the coupling entering each conditional distribution), not",
+    cat("\n Note, the reported edge estimates are pairwise associations",
+        "\n (the coupling entering each conditional distribution), not",
         "\n partial correlations. They are therefore not on the same scale as the",
         "\n edge weights reported for 'BGGM' and 'BDgraph'. Partial correlations",
-        "\n are available in the fit object as $partial_correlations, and the",
-        "\n precision matrix as $precision_matrix.",
+        "\n are available in the fit object as $partial_correlations.",
         "\n---\n")
   }
 }

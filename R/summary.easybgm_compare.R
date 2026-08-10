@@ -295,8 +295,9 @@ print.easybgm_compare <- function(x, ...){
         "\n Bayes factors were obtained using Bayesian model-averaging.",
         "\n ")
     if("package_bgms_compare" %in% class(x)){
-      cat("\n Convergence indicates the R-hat (Gelman-Rubin) statistic measuring how well MCMC chains have converged to",
-          "\n the same target distribution, and values greater than about 1.01-1.05 are considered concerning, ",
+      cat("\n Convergence indicates the R-hat (Gelman-Rubin) statistic measuring",
+          "\n how well MCMC chains have converged to the same target distribution, ",
+          "\n and values greater than about 1.01-1.05 are considered concerning, ",
           "\n indicating potential lack of convergence. ",
           "\n ---")
     }

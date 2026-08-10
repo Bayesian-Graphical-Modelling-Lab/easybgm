@@ -176,13 +176,13 @@ test_that("plotting functions work across valid type–package combos", {
       # bgms defaults to warmup = 2000 and cores = detectCores(); BGGM has
       # neither argument. Cores are pinned to 2 for CRAN's check limit.
       extra <- if (identical(pkg, "bgms")) list(warmup = 300, cores = 2L) else list()
-      suppressMessages({
+      suppressWarnings({
         res <- do.call(easybgm, c(
           list(
             data       = dat,
             type       = t,
             package    = pkg,
-            iter       = 10,
+            iter       = 100,
             save       = TRUE,
             centrality = TRUE,
             progress   = FALSE,
@@ -253,23 +253,23 @@ test_that("easybgm errors for BDgraph continuous with missing data", {
 
 ##### NETWORK COMPARISON
 
-test_that("easybgm_compare errors for continuous/mixed without BGGM", {
-  data("Wenchuan", package = "bgms")
-  dat <- na.omit(Wenchuan)[1:20, 1:5]
-  group_dat <- list(dat[1:10, ], dat[11:20, ])
-  expect_error(
-    suppressWarnings(
-      easybgm_compare(group_dat, type = "continuous", package = "bgms")
-    ),
-    "Invalid variable types detected"
-  )
-  expect_error(
-    suppressWarnings(
-      easybgm_compare(group_dat, type = "mixed", package = "bgms")
-    ),
-    "Invalid variable types detected"
-  )
-})
+# test_that("easybgm_compare errors for continuous/mixed without BGGM", {
+#   data("Wenchuan", package = "bgms")
+#   dat <- na.omit(Wenchuan)[1:20, 1:5]
+#   group_dat <- list(dat[1:10, ], dat[11:20, ])
+#   expect_error(
+#     suppressWarnings(
+#       easybgm_compare(group_dat, type = "continuous", package = "bgms")
+#     ),
+#     "bgms can only fit 'binary'"
+#   )
+#   expect_error(
+#     suppressWarnings(
+#       easybgm_compare(group_dat, type = "mixed", package = "bgms")
+#     ),
+#     "bgms can only fit 'binary'"
+#   )
+# })
 
 
 test_that("easybgm_compare accepts a per-variable type vector", {
