@@ -22,7 +22,7 @@ library(BGGM)
 
 # easybgm: Easy Bayesian Graphical Modeling
 
-The `R` package `easybgm` provides a user-friendly package for performing a Bayesian analysis of psychometric networks. In particular, it helps to fit, extract, and visualize the results of a Bayesian graphical model commonly used in the social and behavioral sciences. The package is a wrapper around existing packages. So far, the package supports fitting and extracting results of cross-sectional network models using `BDgraph` (Mohammadi & Wit, 2015), `BGGM`(Williams & Mulder, 2019), and `bgms` (Marsman, van den Bergh & Haslbeck, 2025). As output, the package extracts the posterior parameter estimates, the posterior inclusion probability, the inclusion Bayes factor, and optionally posterior samples of the parameters and the nodes centrality. The package comes with an extensive suite of visualization functions. The package now also supports comparing networks across groups. This is done through Bayesian inference to quantify differences in conditional (in)dependence structures, using functionality from `BGGM` (Williams et al., 2020) and `bgms` (Marsman et al., 2025). In addition, it allows users to incorporate clustering assumptions by specifying a stochastic block prior on the network structure and to test hypotheses about the presence of such clustering (Sekulovski et al., 2025) via `bgms`.
+The `R` package `easybgm` provides a user-friendly package for performing a Bayesian analysis of psychometric networks. In particular, it helps to fit, extract, and visualize the results of a Bayesian graphical model commonly used in the social and behavioral sciences. The package is a wrapper around existing packages. So far, the package supports fitting and extracting results of cross-sectional network models using `BDgraph` (Mohammadi & Wit, 2015), `BGGM`(Williams & Mulder, 2019), and `bgms` (Marsman, van den Bergh & Haslbeck, 2025). As output, the package extracts the posterior parameter estimates, the posterior inclusion probability, the inclusion Bayes factor, and optionally posterior samples of the parameters and the nodes centrality. The package comes with an extensive suite of visualization functions. The package now also supports comparing networks across groups. This is done through Bayesian inference to quantify differences in conditional (in)dependence structures, using functionality from `BGGM` (Williams et al., 2020) and `bgms` (Marsman et al., 2025). In addition, it allows users to incorporate clustering assumptions by specifying a stochastic block prior on the network structure and to test hypotheses about the presence of such clustering (Sekulovski et al., in press) via `bgms`.
 
 ## Installation
 
@@ -237,7 +237,7 @@ Marsman M, van den Bergh D, Haslbeck J.M.B. Bayesian Analysis of the Ordinal Mar
 
 Mohammadi, Reza, and Ernst C Wit. (2015). "BDgraph: An R Package for Bayesian Structure Learning in Graphical Models." Journal of Statistical Software 89 (3). doi: 10.18637/jss.v089.i03.
 
-Sekulovski, N., Arena, G., Haslbeck, J. M. B., Huth, K., Friel, N., & Marsman, M. (2025). A Stochastic Block Prior for Clustering in Graphical Models. PsyArXiv doi: 10.31234/osf.io/29p3m_v1.
+Sekulovski, N., Arena, G., Haslbeck, J. M. B., Huth, K., Friel, N., & Marsman, M. (in press). A Stochastic Block Prior for Clustering in Graphical Models. Psychological Methods doi: 10.1037/met0000847.
 
 Wickham, H. (2016). ggplot2: Elegant graphics for data analysis. Springer-Verlag New York. Retrixeved from <https://ggplot2.tidyverse.org>.
 

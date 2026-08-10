@@ -44,16 +44,19 @@ bgms.
 package: BGGM.
 }
 
-\strong{2. A character vector of length p} (per-variable specification,
-bgms only): Each element specifies the type of the corresponding column.
-Valid values are \code{"ordinal"}, \code{"blume-capel"}, and
-\code{"binary"}.
+\strong{2. A character vector of length p} (per-variable specification):
+Each element specifies the type of the corresponding column. Valid values
+are \code{"ordinal"}, \code{"blume-capel"}, and \code{"binary"}; note that
+\code{"continuous"} is \emph{not} supported for group comparison with
+\code{bgms}. For example: \code{type = c("ordinal", "ordinal", "blume-capel")}.
 
-For example: \code{type = c("ordinal", "ordinal", "blume-capel")}.}
+Per-variable vectors are fitted by \code{bgms} and require \code{bgms}
+version 0.2.0.0 or later.}
 
-\item{package}{The R-package used for fitting the comparison model.
-If not specified, \code{bgms} is used as the default for ordinal, binary,
-and blume-capel data and \code{BGGM} as default for continous and mixed data.}
+\item{package}{The R-package used for fitting the comparison model, either
+\code{"bgms"} or \code{"BGGM"}. If not specified, \code{bgms} is used for
+ordinal, binary, and blume-capel data, and \code{BGGM} for continuous and
+mixed data.}
 
 \item{not_cont}{A binary vector of length p, required when
 \code{type = "mixed"}. Each element indicates whether the corresponding
@@ -127,20 +130,10 @@ differences in conditional (in)dependence relations across groups.
 \tabular{lcc}{
 \strong{Data type}  \tab \strong{bgms} \tab \strong{BGGM} \cr
 ordinal              \tab Yes (default)  \tab No            \cr
-binary               \tab Yes (always)   \tab Yes            \cr
+binary               \tab Yes (default)  \tab Yes            \cr
 blume-capel          \tab Yes (default)  \tab No            \cr
 continuous            \tab No             \tab Yes (default) \cr
 mixed                 \tab No             \tab Yes (default) \cr
-}
-
-\strong{Two-group vs. multi-group comparison}
-
-\itemize{
-\item \strong{Two-group}: Provide \code{data} as a list of two
-dataframes. Supported by both \code{bgms} and \code{BGGM}.
-\item \strong{Multi-group}: Provide \code{data} as a single
-matrix/dataframe and specify \code{group_indicator}. Supports two or more
-groups. Only available with \code{bgms}.
 }
 
 \strong{Prior specification}
@@ -149,39 +142,39 @@ Users may wish to adjust priors via the \code{...} argument. We summarize
 the bgms options here and refer to \code{\link[bgms]{bgmCompare}} and
 \code{\link[BGGM]{explore}} for full details.
 
-\emph{bgms} (>= 0.2.0.0): the preferred interface uses prior-constructor
-objects:
+\emph{bgms} (>= 0.2.0.0)
 \itemize{
 \item \code{interaction_prior}: Prior on the baseline pairwise
-interactions. Use \code{\link[bgms]{cauchy_prior}(scale)} (default
-\code{cauchy_prior(scale = 1)}), \code{\link[bgms]{normal_prior}(scale)},
+interactions. Use \code{\link[bgms]{normal_prior}(scale)} (default
+\code{normal_prior(scale = 1)}), \code{\link[bgms]{cauchy_prior}(scale)},
 or \code{\link[bgms]{beta_prime_prior}(alpha, beta)}.
+For example, a cauchy prior with scale 1 would be specified with adding the
+argument \code{threshold_prior = cauchy_prior(1)} to the easybgm call.
 \item \code{threshold_prior}: Prior on threshold parameters. Default
-\code{beta_prime_prior(0.5, 0.5)}.
+\code{beta_prime_prior(0.5, 0.5)}, for example, specified by adding
+\code{threshold_prior = beta_prime_prior(0.5, 0.5)} to the easybgm call.
 \item \code{difference_prior}: Indicator prior on group differences.
-Use \code{\link[bgms]{bernoulli_prior}(inclusion_probability)} (default
+Use \code{bernoulli_prior(inclusion_probability)} (default
 \code{bernoulli_prior(0.5)}) or
-\code{\link[bgms]{beta_bernoulli_prior}(alpha, beta)}.
+\code{beta_bernoulli_prior(alpha, beta)}. For example, a beta bernoulli
+prior with alpha 1 and beta 3 can be specified by adding
+\code{difference_prior = beta_bernoulli_prior(1, 3)} to the easybgm call.
+\item \code{difference_family}: The family of the prior on the magnitude of
+the pairwise differences, either \code{"Normal"} (the default) or
+\code{"Cauchy"}. Versions of \code{bgms} before 0.2.0.0 had no such
+argument and always used a Cauchy, so comparison Bayes factors obtained
+with those versions correspond to \code{difference_family = "Cauchy"}.
 \item \code{difference_scale}: Scale of the prior on the magnitude of
-pairwise differences. Default 1.
+pairwise differences, on the family set by \code{difference_family}.
+Default 1, for example, specified by adding the argument
+\code{difference_scale = 1} to the easybgm call.
 \item \code{difference_selection}: Logical, whether to perform Bayesian
 selection on group differences. Default \code{TRUE}.
 }
 
-For backwards compatibility, the legacy flat arguments below are still
-accepted via \code{...} and are translated internally:
-\itemize{
-\item \code{pairwise_scale}: Scale of the Cauchy interaction prior.
-\item \code{difference_prior}: Character string \code{"Bernoulli"}
-(default) or \code{"Beta-Bernoulli"}.
-\item \code{difference_probability}: Prior probability of a difference for
-the Bernoulli prior. Default 0.5.
-\item \code{beta_bernoulli_alpha}, \code{beta_bernoulli_beta}: Shape
-parameters of the Beta-Bernoulli difference prior. Both default to 1.
-\item \code{threshold_alpha}, \code{threshold_beta} (or
-\code{main_alpha}, \code{main_beta}): Beta-prime parameters of the
-threshold prior. Both default to 0.5.
-}
+For backwards compatibility of \emph{bgms} (< 0.2.0.0), the previous
+prior specifications are still accepted and translated into the relevant constructs.
+Check the previous bgms version for its prior arguments.
 
 We always encourage researchers to conduct prior sensitivity checks.
 }
@@ -199,7 +192,7 @@ group2 <- data[11:20, 1:3]
 
 fit <- easybgm_compare(list(group1, group2),
                 type = "binary", save = TRUE,
-                iter = 50  # for demonstration only
+                iter = 50    # for demonstration only
                 )
 summary(fit)
 
@@ -207,7 +200,8 @@ summary(fit)
 fit_multi <- easybgm_compare(data[1:200, 1:5],
                 group_indicator = rep(c(1, 2, 3, 4), each = 50),
                 type = "binary", save = TRUE,
-                iter = 100  # for demonstration only
+                iter = 100,   # for demonstration only
+                warmup = 300  # bgms defaults to 2000
                 )
 summary(fit_multi)
 }

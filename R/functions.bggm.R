@@ -62,7 +62,8 @@ bgm_extract.package_bggm <- function(fit, type, save, iter,
 
     if(centrality){
       # bggm_res$centrality_strength <- centrality_strength(bggm_res)
-      bggm_res$centrality <- centrality(bggm_res)
+      # samples_posterior is filled from upper.tri above, so fill back the same way
+      bggm_res$centrality <- centrality(bggm_res, bycolumn = TRUE)
     }
   }
 

@@ -8,6 +8,5 @@
 
 library(testthat)
 library(easybgm)
-library(vdiffr)
 
 test_check("easybgm")

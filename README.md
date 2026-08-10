@@ -25,7 +25,7 @@ done through Bayesian inference to quantify differences in conditional
 al., 2020) and `bgms` (Marsman et al., 2025). In addition, it allows
 users to incorporate clustering assumptions by specifying a stochastic
 block prior on the network structure and to test hypotheses about the
-presence of such clustering (Sekulovski et al., 2025) via `bgms`.
+presence of such clustering (Sekulovski et al., in press) via `bgms`.
 
 ## Installation
 
@@ -353,8 +353,8 @@ Bayesian Structure Learning in Graphical Models.” Journal of Statistical
 Software 89 (3). doi: 10.18637/jss.v089.i03.
 
 Sekulovski, N., Arena, G., Haslbeck, J. M. B., Huth, K., Friel, N., &
-Marsman, M. (2025). A Stochastic Block Prior for Clustering in Graphical
-Models. PsyArXiv doi: 10.31234/osf.io/29p3m_v1.
+Marsman, M. (in press). A Stochastic Block Prior for Clustering in
+Graphical Models. Psychological Methods doi: 10.1037/met0000847.
 
 Wickham, H. (2016). ggplot2: Elegant graphics for data analysis.
 Springer-Verlag New York. Retrixeved from

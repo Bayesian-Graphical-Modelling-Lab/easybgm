@@ -99,14 +99,19 @@ gwish_samples <- function(G, S, nsamples=1000) {
 # 6. Centrality of weighted graphs
 
 # Strength centrality only ## FASTER CODE
-centrality <- function(res){
+# `bycolumn` says how the posterior sample vectors are laid out and is passed on
+# to vector2matrix(). FALSE (the default) fills the lower triangle column-wise,
+# the order bgms stores pairwise interactions in ((1,2), (1,3), (1,4), (2,3),
+# ...). TRUE fills the upper triangle, which is the order BGGM uses ((1,2),
+# (1,3), (2,3), (1,4), ...). The caller has to state this: the two orders
+# differ, and getting it wrong silently permutes the per-node strengths.
+centrality <- function(res, bycolumn = FALSE){
   Nsamples <- nrow(res$samples_posterior)
   p <- nrow(res$parameters)
   strength_samples <- matrix(0, nrow = Nsamples, ncol = p)
-  use_colmajor <- !any(c("package_bgms", "package_bgms_compare", "bgms") %in% class(res))
   for(i in 1:Nsamples){
-    strength_samples[i, ] <- rowSums(abs(vector2matrix(res$samples_posterior[i,], 
-                                                       p, bycolumn = use_colmajor)))
+    strength_samples[i, ] <- rowSums(abs(vector2matrix(res$samples_posterior[i,],
+                                                       p, bycolumn = bycolumn)))
   }
   return(strength_samples)
 }
@@ -187,11 +192,18 @@ dots_check <- function(...){
 translate_bgm_prior_args <- function(dots) {
   out <- dots
 
-  # interaction_prior: from pairwise_scale (legacy default 1)
-  if(!"interaction_prior" %in% names(out) && "pairwise_scale" %in% names(out)) {
-    out$interaction_prior <- bgms::cauchy_prior(scale = out$pairwise_scale)
+  # interaction_prior: from pairwise_scale, or from the older interaction_scale
+  # that easybgm 0.4.0 documented. bgms maps both to a Cauchy in its own
+  # deprecation shim; intercepting them here keeps that mapping but avoids
+  # emitting bgms's deprecation warning for an argument easybgm told users to use.
+  if(!"interaction_prior" %in% names(out)) {
+    scale_arg <- out$pairwise_scale %||% out$interaction_scale
+    if(!is.null(scale_arg)) {
+      out$interaction_prior <- bgms::cauchy_prior(scale = scale_arg)
+    }
   }
   out$pairwise_scale <- NULL
+  out$interaction_scale <- NULL
 
   # threshold_prior: from main_alpha / main_beta (or legacy threshold_alpha / threshold_beta)
   has_main <- any(c("main_alpha", "main_beta",
@@ -252,10 +264,14 @@ translate_bgmcompare_prior_args <- function(dots) {
   out <- dots
 
   # interaction_prior (baseline) and threshold_prior: same translation as bgm()
-  if(!"interaction_prior" %in% names(out) && "pairwise_scale" %in% names(out)) {
-    out$interaction_prior <- bgms::cauchy_prior(scale = out$pairwise_scale)
+  if(!"interaction_prior" %in% names(out)) {
+    scale_arg <- out$pairwise_scale %||% out$interaction_scale
+    if(!is.null(scale_arg)) {
+      out$interaction_prior <- bgms::cauchy_prior(scale = scale_arg)
+    }
   }
   out$pairwise_scale <- NULL
+  out$interaction_scale <- NULL
 
   has_main <- any(c("main_alpha", "main_beta",
                     "threshold_alpha", "threshold_beta") %in% names(out))
@@ -362,13 +378,26 @@ clusterBayesfactor <- function(fit,
     stop("The type argument must be either 'point' or 'complement'.")
   }
   
-  # Check the class of fit (if it is a bgms object, rename components)
-  if (inherits(fit, "bgms")) {
-    names(fit)[names(fit) == "arguments"] <- "fit_arguments"
+  # Resolve the two pieces we need from either object shape. A raw bgms fit from
+  # bgms >= 0.2.0.0 is an S7 object: names()<- is not allowed on it, and it
+  # carries neither $fit_arguments nor $sbm, so both are read through the bgms
+  # extractors instead.
+  if (inherits(fit, "easybgm")) {
+    lambda <- fit$fit_arguments$lambda
+    num_blocks <- fit$sbm$posterior_num_blocks
+  } else if (inherits(fit, "bgms")) {
+    lambda <- bgms::extract_arguments(fit)$lambda
+    num_blocks <- bgms::extract_sbm(fit)$posterior_num_blocks
+  } else {
+    stop("fit must be a fitted object of class 'easybgm' or 'bgms'.")
   }
-  
-  lambda <- fit$fit_arguments$lambda
-  
+
+  if (is.null(num_blocks)) {
+    stop("The fit does not contain a posterior distribution over the number of ",
+         "clusters. Refit the model with the Stochastic Block Model edge prior, ",
+         "e.g. edge_prior = bgms::sbm_prior().")
+  }
+
   if (type == "point") {
     if (is.null(b1) || is.null(b2)) {
       stop("For the point type, both b1 and b2, indicating the number of clusters to be tested, must be provided.")
@@ -377,14 +406,14 @@ clusterBayesfactor <- function(fit,
     prO <- (lambda^(b1 - b2) * factorial(b2)) / factorial(b1)
     
     # Calculate the posterior odds in favor of b1 against b2
-    poO <-  unname(fit$sbm$posterior_num_blocks[b1, 1]) / unname(fit$sbm$posterior_num_blocks[b2, 1])
+    poO <-  unname(num_blocks[b1, 1]) / unname(num_blocks[b2, 1])
     
     bayesFactor <- poO / prO
     
   } else if (type == "complement") {
     # In favor of the complement
     prO <- (exp(lambda) - 1 - lambda) / lambda
-    poO <- sum(fit$sbm$posterior_num_blocks[-1, 1]) / unname(fit$sbm$posterior_num_blocks[1, 1])
+    poO <- sum(num_blocks[-1, 1]) / unname(num_blocks[1, 1])
     bayesFactor <- poO / prO
   }
   
@@ -488,4 +517,135 @@ BF_MCSE <- function(gamma_mat,
     )
     return(ci_df)
   }
+}
+
+# --------------------------------------------------------------------------------------------------
+# Blume-Capel main effects (bgms >= 0.2.0.0)
+# --------------------------------------------------------------------------------------------------
+# A Blume-Capel variable has two main-effect parameters rather than one
+# threshold per category: the threshold for category x of a variable with
+# baseline b is mu(x) = linear * x + quadratic * (x - b)^2. bgms labels the
+# columns of its main-effect matrix "cat (k)" for every discrete variable, so
+# for Blume-Capel variables those headers name the wrong quantity. These
+# helpers relabel what easybgm stores and pull the pair into its own table.
+
+# Which variables were fitted as Blume-Capel? bgms returns 'variable_type' with
+# one entry per variable when the user supplied a vector, and a single string
+# when the same type was applied to all of them.
+bc_variable_names <- function(args, varnames){
+  variable_type <- rep_len(args$variable_type, length(varnames))
+  varnames[variable_type == "blume-capel"]
+}
+
+# bgms recodes discrete scores to start at 0 and shifts the baseline category
+# with them, so args$baseline_category is on the recoded scale. The offset is
+# args$blume_capel_shift, which is NA for variables that are not Blume-Capel.
+# Adding the two recovers the baseline on the scale the user supplied.
+#
+# Mind the indexing: bgms indexes 'baseline_category' and 'blume_capel_shift'
+# over the discrete variables only, whereas 'variable_type' has one entry per
+# variable. The two therefore differ in length as soon as the model holds a
+# continuous variable, and lining them up positionally silently misreports the
+# baseline. The returned vector is named, so callers can index it by variable.
+bc_baseline_categories <- function(args, varnames){
+  variable_type <- rep_len(args$variable_type, length(varnames))
+  is_discrete <- variable_type != "continuous"
+  discrete_names <- varnames[is_discrete]
+  n <- length(discrete_names)
+
+  align <- function(x, default){
+    if(is.null(x)) return(rep(default, n))
+    if(length(x) == n) return(x)
+    # Tolerate a per-variable vector as well, in case bgms ever reports one.
+    if(length(x) == length(varnames)) return(x[is_discrete])
+    rep_len(x, n)
+  }
+
+  baseline <- align(args$baseline_category, 0)
+  shift <- align(args$blume_capel_shift, 0)
+  shift[is.na(shift)] <- 0
+
+  stats::setNames(baseline + shift, discrete_names)
+}
+
+# Rename the Blume-Capel columns of the stored main-effect matrix. When
+# Blume-Capel and ordinal variables share one matrix the column headers cannot
+# describe both, so record the per-row meaning as an attribute instead.
+label_bc_thresholds <- function(thresholds, bc_names){
+  relabel <- function(m){
+    if(is.null(m) || !is.matrix(m) || is.null(rownames(m))) return(m)
+    is_bc <- rownames(m) %in% bc_names
+    if(!any(is_bc)) return(m)
+    if(all(is_bc) && ncol(m) == 2){
+      colnames(m) <- c("linear", "quadratic")
+    } else {
+      attr(m, "variable_type") <- ifelse(is_bc, "blume-capel", "ordinal")
+    }
+    m
+  }
+
+  if(is.list(thresholds) && !is.null(thresholds$discrete)){
+    thresholds$discrete <- relabel(thresholds$discrete)
+    return(thresholds)
+  }
+  relabel(thresholds)
+}
+
+# Build the Blume-Capel parameter table, and optionally the posterior samples,
+# from a fitted bgms object. Returns NULL when the fit holds no Blume-Capel
+# variables or does not carry the posterior summary these fields are built from.
+extract_blume_capel <- function(fit, varnames, args, save = FALSE){
+  bc_names <- bc_variable_names(args, varnames)
+  if(length(bc_names) == 0) return(NULL)
+
+  summ <- fit$posterior_summary_main
+  if(is.null(summ) || is.null(rownames(summ))) return(NULL)
+
+  # Match on the full parameter label rather than on a suffix, so a variable
+  # that happens to be named "x (linear)" cannot be mistaken for one.
+  labels <- as.vector(rbind(paste0(bc_names, " (linear)"),
+                            paste0(bc_names, " (quadratic)")))
+  idx <- match(labels, rownames(summ))
+  if(anyNA(idx)) return(NULL)
+
+  baseline <- bc_baseline_categories(args, varnames)
+
+  # Credible intervals come from the draws themselves; posterior_summary_main
+  # reports only mean, sd, mcse, n_eff and Rhat.
+  lower <- upper <- rep(NA_real_, length(labels))
+  samples <- NULL
+  raw <- tryCatch(fit$raw_samples, error = function(e) NULL)
+  par_names <- raw$parameter_names$main
+  if(!is.null(raw$main) && !is.null(par_names)){
+    cols <- match(labels, par_names)
+    if(!anyNA(cols)){
+      draws <- do.call(rbind, raw$main)
+      if(ncol(draws) == length(par_names)){
+        draws <- draws[, cols, drop = FALSE]
+        colnames(draws) <- labels
+        quantiles <- apply(draws, 2, stats::quantile,
+                           probs = c(0.025, 0.975), names = FALSE)
+        lower <- quantiles[1, ]
+        upper <- quantiles[2, ]
+        if(save) samples <- draws
+      }
+    }
+  }
+
+  table <- data.frame(
+    variable = rep(bc_names, each = 2),
+    effect = rep(c("linear", "quadratic"), times = length(bc_names)),
+    baseline = rep(unname(baseline[bc_names]), each = 2),
+    estimate = summ$mean[idx],
+    sd = summ$sd[idx],
+    lower = lower,
+    upper = upper,
+    convergence = summ$Rhat[idx],
+    row.names = NULL
+  )
+  colnames(table) <- c("Variable", "Effect", "Baseline Category", "Estimate",
+                       "Posterior SD", "Lower 2.5%", "Upper 97.5%",
+                       "Convergence")
+
+  list(table = table, samples = samples)
 }

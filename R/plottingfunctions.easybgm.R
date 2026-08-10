@@ -651,15 +651,13 @@ plot_centrality.list <- function(output, group_names = NULL, ...){
     res <- list()
     for(i in 1:length(output)) {
       fit_args <- bgms::extract_arguments(output[[i]])
-      
-      if(!fit_args$save){
-        stop("Samples of the posterior distribution required but not required for at least one fit. When estimating the model with bgm, set \"save = TRUE\".")
-      }
-      
-      fit_args <- bgms::extract_arguments(output[[i]])
-      
+      # bgms >= 0.1.6.0 always stores the posterior samples and no longer reports
+      # `save` in the fit arguments, so it has to be set here.
+      fit_args$save <- TRUE
+
       res[[i]] <- bgm_extract.package_bgms(fit = output[[i]], save = fit_args$save, centrality = TRUE,
-                                           type = NULL, not_cont = NULL, data = NULL,
+                                           type = fit_args$variable_type,
+                                           not_cont = NULL, data = NULL,
                                            edge_prior = fit_args$edge_prior,
                                            inclusion_probability  = fit_args$inclusion_probability,
                                            beta_bernoulli_alpha = fit_args$beta_bernoulli_alpha,
@@ -764,10 +762,14 @@ plot_prior_sensitivity.list <- function(output,
     res <- list()
     for(i in 1:length(output)) {
       fit_args <- bgms::extract_arguments(output[[i]])
-      
-      res[[i]] <- bgm_extract.package_bgms(fit = output[[i]], save = fit_args$save, 
+      # bgms >= 0.1.6.0 always stores the posterior samples and no longer reports
+      # `save` in the fit arguments, so it has to be set here.
+      fit_args$save <- TRUE
+
+      res[[i]] <- bgm_extract.package_bgms(fit = output[[i]], save = fit_args$save,
                                            centrality = TRUE,
-                                           type = NULL, not_cont = NULL, data = NULL,
+                                           type = fit_args$variable_type,
+                                           not_cont = NULL, data = NULL,
                                            edge_prior = fit_args$edge_prior,
                                            inclusion_probability  = fit_args$inclusion_probability,
                                            beta_bernoulli_alpha = fit_args$beta_bernoulli_alpha,
